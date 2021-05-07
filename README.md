@@ -2,7 +2,7 @@
 # Joint_Human_House_IDEAS_State
 
 ###### The whole pipeline is in the "RUNME_joint_IDEAS_pipeline_8mk.sh" file
-'''
+```
 ##################
 ### joint human-mouse IDEAS Epigenetic State run
 ### Human hg38 R1
@@ -193,5 +193,5 @@ cp S3V2_IDEAS_mm10_ccre2.pdf /storage/home/gzx103/scratch/joint_human_mouse/tran
 cp -r Tracks /storage/home/gzx103/scratch/joint_human_mouse/transfer_files/cCRE_IS/V_IS_cCRE_mm10/
 cp S3V2_IDEAS_mm10_ccre2.*.cCRE.bed /storage/home/gzx103/scratch/joint_human_mouse/transfer_files/cCRE_IS/V_IS_cCRE_mm10/celltype_pk_bed/
 
-'''
+```
 
