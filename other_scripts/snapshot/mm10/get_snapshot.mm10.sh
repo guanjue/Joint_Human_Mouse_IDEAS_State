@@ -12,7 +12,7 @@ working_folder='/storage/home/gzx103/scratch/joint_human_mouse/mm10/S3V2_IDEAS_o
 ### the working folder should be inside the S3V2-IDEAS output directory
 ### e.g S3V2_IDEAS_outputs_mm10
 
-output_folder=$working_folder'/output'
+output_folder=$working_folder'/output1'
 S3V2_IDEAS_cCRE_folder='/storage/home/gzx103/scratch/joint_human_mouse/mm10/S3V2_IDEAS_outputs_mm10_CCRE/S3V2_IDEAS_mm10_ccre2_IDEAS_output'
 NBP_txt_folder='/storage/home/gzx103/scratch/joint_human_mouse/mm10/S3V2_IDEAS_outputs_mm10/S3V2_IDEAS_mm10_r1_IDEAS_input_NB/'
 
@@ -21,7 +21,7 @@ S3V2_IDEAS_IS_cCRE_file='/storage/home/gzx103/scratch/joint_human_mouse/mm10/S3V
 S3V2_IDEAS_ES_state_file='/storage/home/gzx103/scratch/joint_human_mouse/mm10/S3V2_IDEAS_outputs_mm10/S3V2_IDEAS_mm10_r3_withHg38Mm10prior_IDEAS_output/S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state'
 bin_file_withid='/storage/home/gzx103/scratch/joint_human_mouse/mm10/S3V2_IDEAS_outputs_mm10_CCRE/windowsNoBlack.withid.bed'
 
-IDEAS_cell_type_rep_list=$working_folder'/celltype_rep_list_ideas.txt'
+IDEAS_cell_type_rep_list=$working_folder'/celltype_rep_list.txt'
 
 ### remove line 179 - 184 in snapshot/bin/snapshot_v.0.4.py
         #if os.path.isfile('all_pk.bed'):
@@ -57,7 +57,7 @@ done
 
 ### get signal files
 mkdir -p atac_sig
-ls atac_pk/* | awk -F '.' -v OFS='\t' '{print $2}' > atac_ctr.list.txt
+ls atac_pk/*.cCRE.bed | awk -F '.' -v OFS='\t' '{print $2}' > atac_ctr.list.txt
 for ctr in $(cat atac_ctr.list.txt)
 do
         echo $ctr
@@ -69,19 +69,23 @@ paste $bin_file_withid $NBP_txt_folder'/'ATAC.average_sig.NBP.txt > atac_sig/AVE
 ###### get snapshot input lists
 ### signal list
 echo 'AVE' > atac_ctr.list.txt
-ls atac_pk/* | awk -F '.' -v OFS='\t' '{print $2}' >> atac_ctr.list.txt
-ls atac_sig/* > signal_list.txt
+ls atac_pk/*.cCRE.bed | awk -F '.' -v OFS='\t' '{print $2}' >> atac_ctr.list.txt
+ls atac_sig/*.S3V2.bedgraph.NBP.bed > signal_list.txt
 paste signal_list.txt atac_ctr.list.txt > signal_list.txt1 && mv signal_list.txt1 signal_list.txt
 
 ### function label list
-ls function_label/* > function_list.txt
-paste function_list.txt $IDEAS_cell_type_rep_list > function_list.txt1 && mv function_list.txt1 function_list.txt
+ls function_label/*.sig.bed > function_list.txt
+sort $IDEAS_cell_type_rep_list > $IDEAS_cell_type_rep_list'.tmp'
+paste function_list.txt $IDEAS_cell_type_rep_list'.tmp' > function_list.txt1 && mv function_list.txt1 function_list.txt
 
 ### pk list
-ls atac_pk/* | awk -F '.' -v OFS='\t' '{print $0, $2}' > peak_list.txt
+ls atac_pk/*.cCRE.bed | awk -F '.' -v OFS='\t' '{print $0, $2}' > peak_list.txt
 
+mkdir -p $output_folder
 ### run snapshot to get IDEAS matrix
-time python $script_folder'snapshot_v.0.4.py' -p peak_list.txt -n snapshot -t 1 -s signal_list.txt -l F -z F -x 0.01 -f function_list.txt -m mostfreq -c function_color_list.txt -e cd_tree.txt -i $input_folder -o $output_folder -b $script_folder -q 1
-echo 'complete :)'
+echo $output_folder
+time python $script_folder'snapshot_v.0.4.py' -p peak_list.txt -n snapshot -t 1 -s signal_list.txt -l F -z F -x 0.01 -f function_list.txt -m mostfreq -c function_color_list.txt -e cd_tree.txt -i $working_folder -o $output_folder -b $script_folder -q 1
+#echo 'complete :)'
+
 
 
