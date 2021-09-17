@@ -13,7 +13,7 @@ read_color = function(x){
 	return(rgb_color)
 }
 
-
+setwd('/gpfs/scratch/gzx103/joint_human_mouse/hg38/S3V2_IDEAS_outputs_hg38/S3V2_IDEAS_hg38_r3_withHg38Mm10prior_IDEAS_snapshot/output')
 index_matrix_index_inputfile = 'snapshot.index.matrix.txt'
 index_matrix_ideas_state_inputfile = 'snapshot.IDEAS.matrix.txt'
 ideas_state_color = 'state_color.txt'
@@ -43,10 +43,10 @@ index_set_id_uniq_sort = sort(index_set_id_uniq)
 
 ### set heatmap colors
 print('set heatmap colors')
-rgb_col_num = read.table(ideas_state_color,header=F)
+rgb_col_num0 = read.table(ideas_state_color,header=F)
 rgb_col_num = rgb_col_num[,2]
 print(rgb_col_num)
-rgb_col=apply(cbind(rgb_col_num),1,function(x) read_color(x))
+rgb_col=apply((rgb_col_num0),1,function(x) read_color(x[2]))
 my_colorbar=colorRampPalette(rgb_col)(n = length(rgb_col_num)[1])
 
 ideas_state_matrix_uniq_sort = 0:(length(rgb_col_num)-1)
@@ -103,8 +103,8 @@ index_matrix_num = apply(index_matrix,2,as.numeric)
 
 ### order cell types
 ct_list = apply(cbind(colnames(state_matrix)),1,function(x) unlist(strsplit(x,'_'))[1] )
-ct_list[36:37] = 'T_CD4'
-ct_list[38:39] = 'T_CD8'
+ct_list[34:35] = 'T_CD4'
+ct_list[36:37] = 'T_CD8'
 
 
 celltype_count = c()

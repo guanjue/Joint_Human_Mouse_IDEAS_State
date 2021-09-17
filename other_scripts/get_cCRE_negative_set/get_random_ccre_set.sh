@@ -20,14 +20,12 @@ bash -c "RANDOM=$j"
 #head -140000 S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+120001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.7.bed
 #head -160000 S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+140001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.8.bed
 #head -180000 S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+160001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.9.bed
-#head -200000 S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+180001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.10.bed
-#head -220000 S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+200001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.11.bed
-#cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+220001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.12.bed
+#cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+180001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.10.bed
 
 
 #echo $j
 ### get random peaks
-for i in {1..12}
+for i in {1..10}
 do
 	echo $i
 	time bash Negetive_sequence_matched_length_GC.sh S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed hg38.chrom.1_22XY.sizes hg38.fa 5 &
@@ -35,11 +33,13 @@ done
 
 
 ### pool random peaks
-#rm S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
-#for i in {1..12}
-#do
-#	cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed_matched.bed >> S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
-#done
+rm S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
+for i in {1..10}
+do
+	cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed_matched.bed >> S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
+done
 
 
 
+j=10
+bash get_random_ccre_set.sh $j
