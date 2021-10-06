@@ -13,10 +13,10 @@ read_color = function(x){
 	return(rgb_color)
 }
 
-
+setwd('/gpfs/scratch/gzx103/joint_human_mouse/mm10/S3V2_IDEAS_outputs_mm10/S3V2_IDEAS_mm10_r3_withHg38Mm10prior_IDEAS_snapshot/output')
 index_matrix_index_inputfile = 'snapshot.index.matrix.txt'
 index_matrix_ideas_state_inputfile = 'snapshot.IDEAS.matrix.mm10.txt'
-ideas_state_color = 'state_color.txt'
+ideas_state_color = '/gpfs/scratch/gzx103/joint_human_mouse/hg38/S3V2_IDEAS_outputs_hg38/S3V2_IDEAS_hg38_r3_withHg38Mm10prior_IDEAS_snapshot/output/state_color.txt'
 cREs_IDEASpro_outfile = 'snapshot.mm10.barplot.pdf'
 
 #################################################### 
@@ -28,6 +28,7 @@ index_matrix_od = as.matrix(read.table(index_matrix_index_inputfile, header=TRUE
 print('read ideas state matrix file')
 state_matrix_od = as.matrix(read.table(index_matrix_ideas_state_inputfile, header=TRUE))
 index_matrix = index_matrix_od[ , -c(1:4)]
+index_matrix = apply(index_matrix, 2, as.numeric)
 state_matrix = state_matrix_od[, -c(1:4)]
 state_matrix = state_matrix[,is.element(colnames(state_matrix), colnames(index_matrix_od))]
 print(dim(index_matrix))
@@ -44,23 +45,32 @@ index_set_id_uniq_sort = sort(index_set_id_uniq)
 
 ### set heatmap colors
 print('set heatmap colors')
-rgb_col_num = read.table(ideas_state_color,header=F)
-rgb_col_num = rgb_col_num[,2]
+rgb_col_num0 = read.table(ideas_state_color,header=F)
+rgb_col_num = rgb_col_num0[,2]
 print(rgb_col_num)
-rgb_col=apply(cbind(rgb_col_num),1,function(x) read_color(x))
+rgb_col=apply((rgb_col_num0),1,function(x) read_color(x[2]))
 my_colorbar=colorRampPalette(rgb_col)(n = length(rgb_col_num)[1])
 
 ideas_state_matrix_uniq_sort = 0:(length(rgb_col_num)-1)
 
+### order cell types
+ct_list = apply(cbind(colnames(state_matrix)),1,function(x) unlist(strsplit(x,'_'))[1] )
+
+ct_list[21] = 'T_CD4'
+ct_list[22] = 'T_CD8'
 
 ###### extract counts matrix
 counts_matrix = c()
 counts_index_matrix = c()
 for (i in c(1: dim(state_matrix)[2]) ){
 	### extract ith cell type data
+	ct_i = ct_list[i]
 	ideas_state_matrix_table_tmp = as.matrix(as.numeric(state_matrix[,i]))
-	index_state_matrix_table_tmp = as.matrix(as.numeric(index_matrix[,i]))
-
+	if (sum(ct_list==ct_i)>1){
+		index_state_matrix_table_tmp = as.matrix(rowMeans(index_matrix[,ct_list==ct_i]))
+	}else{
+		index_state_matrix_table_tmp = as.matrix(cbind(index_matrix[,ct_list==ct_i]))
+	}
 	#ideas_state_matrix_table_tmp = ideas_state_matrix_table_tmp[index_state_matrix_table_tmp!=0]
 	ideas_state_matrix_table_tmp = ideas_state_matrix_table_tmp[ideas_state_matrix_table_tmp!=0]
 	table_tmp = c()
@@ -75,7 +85,6 @@ for (i in c(1: dim(state_matrix)[2]) ){
 	### extract ith cell type data
 	print('atac-pk start')
 	ideas_state_matrix_table_tmp = as.matrix(as.numeric(state_matrix[,i]))
-	index_state_matrix_table_tmp = as.matrix(as.numeric(index_matrix[,i]))
 
 	ideas_state_matrix_table_tmp = ideas_state_matrix_table_tmp[index_state_matrix_table_tmp!=0]
 	ideas_state_matrix_table_tmp = ideas_state_matrix_table_tmp[ideas_state_matrix_table_tmp!=0]
@@ -102,11 +111,6 @@ counts_index_matrix_t = t( counts_index_matrix )
 colnames(counts_index_matrix_t) = colnames(state_matrix)
 index_matrix_num = apply(index_matrix,2,as.numeric)
 
-### order cell types
-ct_list = apply(cbind(colnames(state_matrix)),1,function(x) unlist(strsplit(x,'_'))[1] )
-
-ct_list[21] = 'T_CD4'
-ct_list[22] = 'T_CD8'
 
 
 celltype_count = c()
