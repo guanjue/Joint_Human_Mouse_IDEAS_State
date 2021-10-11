@@ -78,6 +78,11 @@ time Rscript ../bin/get_modified_para_heatmap.R S3V2_IDEAS_mm10_r3_withHg38Mm10p
 time Rscript ~/scratch/joint_human_mouse/S3V2_IDEAS_ESMP/bin/get_notall0_bed.R S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state S3V2_IDEAS_mm10_r3_withHg38Mm10prior.nonall0.bed
 
 
+###### check R3 mean vs var
+cd /storage/home/gzx103/scratch/joint_human_mouse/hg38/
+time Rscript ~/scratch/joint_human_mouse/S3V2_IDEAS_ESMP/bin/get_state_mean_var.maxnum.R 'S3V2_IDEAS_outputs_hg38/' 'S3V2_IDEAS_hg38_r3_withHg38Mm10prior' '.m_v.r3.pdf' '_IDEAS_output/'
+cd /storage/home/gzx103/scratch/joint_human_mouse/mm10/
+time Rscript ~/scratch/joint_human_mouse/S3V2_IDEAS_ESMP/bin/get_state_mean_var.maxnum.R 'S3V2_IDEAS_outputs_mm10/' 'S3V2_IDEAS_mm10_r3_withHg38Mm10prior' '.m_v.r3.pdf' '_IDEAS_output/'
 
 
 
