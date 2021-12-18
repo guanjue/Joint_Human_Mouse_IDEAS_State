@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --mem=200G
-#SBATCH --cpus-per-task=12
+#SBATCH --mem=5G
+#SBATCH --cpus-per-task=1
 
 source ~/.bashrc
 
@@ -22,24 +22,24 @@ bash -c "RANDOM=$j"
 #head -180000 S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+160001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.9.bed
 #cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.bed | tail -n+180001 > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.10.bed
 
+Rscript get_sample.pks.R DHS.M.withid.bed 50000 $j
+time bash Negetive_sequence_matched_length_GC.sh DHS.M.withid.bed.$j'.sample.bed' hg38.chrom.1_22XY.sizes hg38.fa 20
 
 #echo $j
 ### get random peaks
-for i in {1..10}
-do
-	echo $i
-	time bash Negetive_sequence_matched_length_GC.sh S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed hg38.chrom.1_22XY.sizes hg38.fa 5 &
-done
+#for i in {1..10}
+#do
+#	echo $i
+#	time bash Negetive_sequence_matched_length_GC.sh S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed hg38.chrom.1_22XY.sizes hg38.fa 5 &
+#done
 
 
 ### pool random peaks
-rm S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
-for i in {1..10}
-do
-	cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed_matched.bed >> S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
-done
+#rm S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
+#for i in {1..10}
+#do
+#	cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.$i.bed_matched.bed >> S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.N.bed_matched.$j.bed
+#done
 
 
 
-j=10
-bash get_random_ccre_set.sh $j
