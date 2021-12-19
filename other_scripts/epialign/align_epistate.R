@@ -146,18 +146,31 @@ state = read.table('06a_S3V2_IDEAS_hg38_r3_withHg38Mm10prior.para.modified.para'
 state_mat_od = apply(state[,2:9],2,function(x) x/state[,1])
 
 state_exp_num = (state[,1] %*% t(state[,1]))/sum(state[,1])
+add_sm_exp = 1000
+scale_mat = 1/(state_exp_num+add_sm_exp)*(mean(state_exp_num+add_sm_exp))
+scale_mat[scale_mat<0.1] = 0.1
+scale_mat[scale_mat>10] = 10
+
+max(scale_mat)
 
 state_mat_posneg = state_mat_od
 state_mat_posneg[c(2,4,8,19,12),] = -state_mat_posneg[c(2,4,8,19,12),]
 
 state_dist_od = as.matrix(dist(state_mat_posneg))
 
-state_dist_adjstatefreq = (max(state_dist_od)-state_dist_od)/(state_exp_num+100)*mean(state_exp_num)
+state_dist_adjstatefreq = (max(state_dist_od)-state_dist_od)
 
-state_dist_align0 = state_dist_adjstatefreq/max(state_dist_adjstatefreq)
-state_dist_align = -1+state_dist_adjstatefreq/max(state_dist_adjstatefreq)
+
+state_dist_align0a = (state_dist_adjstatefreq-median(state_dist_adjstatefreq))#*scale_mat
+
+state_dist_align0 = (state_dist_adjstatefreq-median(state_dist_adjstatefreq))*scale_mat
+state_dist_align0 = state_dist_align0/max(abs(state_dist_align0))
+
+state_dist_align = state_dist_align0
+
+
+state_dist_align = (-1+state_dist_adjstatefreq/max(state_dist_adjstatefreq))
 diag(state_dist_align) = diag(state_dist_align0)
-
 
 
 
@@ -189,28 +202,43 @@ for (i in 1:dim(state_dist_od0)[1]){
 s1 = read.table('genes/hg38.gene.tss.exp.GATA1.S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.AVE.bed.state.bed.seq')
 s2 = read.table('genes/mm10.gene.tss.exp.Gata1.S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.AVE.bed.state.bed.seq')
 
-s1s = paste(s1[,1], collapse='')
-s2s = paste(s2[,1], collapse='')
+s1a = s1
+s2a = s2
+
+for (i in 1:25){
+	s1a[s1==(i-1)] = LETTERS[i]
+	s2a[s2==(i-1)] = LETTERS[i]
+}
 
 
+s1s = paste(s1a[,1], collapse='')
+s2s = paste(s2a[,1], collapse='')
 
-state_dist_od
-
-
+chrX	48673045	48904704	GATA1	0	+
+chrX	7871432	8066079	GATA1	0	-
 
 
 state_dist = function(x1,x2){
-id1 = as.numeric(x1)+1
-id2 = as.numeric(x2)+1
-dist_ij = state_dist_align[id1,id2]*100
+id1 = which(tolower(LETTERS)==tolower(x1))
+id2 = which(tolower(LETTERS)==tolower(x2))
+dist_ij = (state_dist_align[id1,id2])*1
 return(dist_ij)
 }
 
-sw_align1 = smith_waterman(s1s,s2s,similarity=state_dist, gap=-100)
+sw_align1 = smith_waterman(s1s,s2s,similarity=state_dist, gap=0)
 
 
 cbind(sw_align1$a$alignment$text, sw_align1$b$alignment$text)
 sw_align1$sw
+
+
+m <- text.alignment::smith_waterman_function(a = s1s, b = s2s, score_gap = -1, similarity = state_dist)
+
+
+###################################################K#K#K#######K#M#########GT#O#O#O##O#O#O#O#O#O#O#O########G#KA###GGAAAAAAA#CAAA####C#C####CCACCACCCAE#K#K###########K######################EAAAAAAAAAAAAAAAAAAAA##############################E#E#
+AAAAAAACAAAAAAAAAAAAAAAAAAAAAACAAAAAABAAACAAAAAAACE#K#K#KKKTKKK#K#KKKKKKKKK##K#O#O#OP#O#O#O#O#O#O#O#OOOOOUUU#K##KOO#########K####KKCR#I#IRRR###########I#C#CCCCICCRRCC#CCCCCCCCCCCCCCCCCCCCCA#####################JAAAAAAAAAAAAAADAAAAFAAAAAAAAA#E#E
+
+
 
 
 s1b = read.table('genes/hg38.gene.tss.exp.A1BG.S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.AVE.bed.state.bed.seq')
@@ -325,6 +353,10 @@ rownames(d12) = genes
 colnames(d12) = c('AVE','ERY')
 
 head(d12[order(-abs(d12[,1]-d12[,2])),])
+
+
+cat S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state | awk -F ' ' -v OFS='\t' '{print $2,$3,$4, $5, $6,$7, $12, $16,$17, $18, $20, $32,$33, $34, $42, $44, $46  }' > S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed
+cat S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state | awk -F ' ' -v OFS='\t' '{print $2,$3,$4, $5, $6,$7, $11, $14,$15, $20, $22, $26,$27, $28, $30, $31, $32  }' > S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
 
 
 cat S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state | awk -F ' ' -v OFS='\t' '{print $2,$3,$4,$16}' > S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.ERY_S002R5.bed
