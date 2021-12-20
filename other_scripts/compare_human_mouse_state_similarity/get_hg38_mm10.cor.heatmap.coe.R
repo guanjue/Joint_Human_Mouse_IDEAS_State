@@ -31,18 +31,18 @@ d1s = d1[,-c(1:3)]
 d2s = d2[,-c(1:3)]
 
 ### state to signal matrix
-d1s_sigmat = matrix(0, nrow=dim(d1s)[1], ncol=dim(d1s)[2]*dim(state_mat_od)[2])
-d2s_sigmat = matrix(0, nrow=dim(d2s)[1], ncol=dim(d2s)[2]*dim(state_mat_od)[2])
+### state to signal matrix
+d1s_sigmat = matrix(0, nrow=dim(d1s)[1], ncol=dim(d1s)[2])
+d2s_sigmat = matrix(0, nrow=dim(d2s)[1], ncol=dim(d2s)[2])
 ###
 for (i in 1:dim(d1s)[1]){
-	sig_i = c(state_mat_od[unlist(d1s[i,]+1),])
-	d1s_sigmat[i,] = as.numeric(state_mat_od[unlist(d1s[i,]+1),])
+	d1s_sigmat[i,] = as.numeric(state_coe[unlist(d1s[i,]+1)])
 }
 ###
 for (i in 1:dim(d2s)[1]){
-	sig_i = c(state_mat_od[unlist(d2s[i,]+1),])
-	d2s_sigmat[i,] = as.numeric(state_mat_od[unlist(d2s[i,]+1),])
+	d2s_sigmat[i,] = as.numeric(state_coe[unlist(d2s[i,]+1)])
 }
+
 ###
 rownames(d1s_sigmat) = paste('H',1:dim(d1s_sigmat)[1], sep=':')
 rownames(d2s_sigmat) = paste('M',1:dim(d2s_sigmat)[1], sep=':')
