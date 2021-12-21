@@ -73,7 +73,8 @@ d2used_final_match_order = d2used_final_match[order(d2used_final_match[,1]), ]
 
 ### get cor 
 set.seed(2019)
-cor_vec = apply(cbind(log2(d1used_final_match_order[,-c(1,2)]*100+1)+matrix(rnorm(dim(d1used_final_match_order)[1]*(dim(d1used_final_match_order)[2]-2), mean = 0, sd = 0.1), nrow=dim(d1used_final_match_order)[1],ncol=dim(d1used_final_match_order)[2]-2), log(d2used_final_match_order[,-c(1,2)]+1))+matrix(rnorm(dim(d1used_final_match_order)[1]*(dim(d1used_final_match_order)[2]-2), mean = 0, sd = 0.1), nrow=dim(d1used_final_match_order)[1],ncol=dim(d1used_final_match_order)[2]-2), 1, function(x) cor(x[1:(dim(d1)[2]-2)], x[(dim(d1)[2]-2+1):(dim(d1)[2]*2-4)]))
+log_sd = 1
+cor_vec = apply(cbind(log2(d1used_final_match_order[,-c(1,2)]*100+1)+matrix(rnorm(dim(d1used_final_match_order)[1]*(dim(d1used_final_match_order)[2]-2), mean = 0, sd = log_sd), nrow=dim(d1used_final_match_order)[1],ncol=dim(d1used_final_match_order)[2]-2), log(d2used_final_match_order[,-c(1,2)]+1))+matrix(rnorm(dim(d1used_final_match_order)[1]*(dim(d1used_final_match_order)[2]-2), mean = 0, sd = log_sd), nrow=dim(d1used_final_match_order)[1],ncol=dim(d1used_final_match_order)[2]-2), 1, function(x) cor(x[1:(dim(d1)[2]-2)], x[(dim(d1)[2]-2+1):(dim(d1)[2]*2-4)]))
 
 #cor_vec = apply(cbind(log2(d1used_final_match_order[,-c(1,2)]*100+1), log(d2used_final_match_order[,-c(1,2)]+1)), nrow=dim(d1used_final_match_order)[1],ncol=dim(d1used_final_match_order)[2]-2), 1, function(x) cor(x[1:(dim(d1)[2]-2)], x[(dim(d1)[2]-2+1):(dim(d1)[2]*2-4)]))
 

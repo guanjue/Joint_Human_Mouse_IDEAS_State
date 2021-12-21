@@ -22,6 +22,8 @@ cd /homes1/gxiang/softwares/EpiAlign/Ccode/example/VISION_IDEAS_states/
 
 ### get heatmap
 #time bash get_hg38_mm10.state_similarity.sh GATA1 Gata1 50000 50000 hg38.gene.bed mm10.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
+#time bash get_hg38_mm10.state_similarity.sh Gata1 Gata1 50000 50000 mm10.gene.bed mm10.gene.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
+#time bash get_hg38_mm10.state_similarity.sh GATA1 GATA1 50000 50000 hg38.gene.bed hg38.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed
 
 
 hg38_gene=$1
