@@ -17,13 +17,25 @@ cd /homes1/gxiang/softwares/EpiAlign/Ccode/example/VISION_IDEAS_states/
 
 
 ### prepare matched ct state bed
+### hg38
 #cat S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state | awk -F ' ' -v OFS='\t' '{print $2,$3,$4, $5, $6,$7, $12, $16,$17, $18, $20, $30, $32,$33, $34, $42, $44, $46  }' > S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed
+#bedtools makewindows -g ~/softwares/S3V2_IDEAS_ESMP/genomesize/hg38.chrom.1_22XY.sizes -w 200 > hg38.all.200bp.bins.bed
+#tail -n+2 S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed  > hg38.current.bed
+#bedtools intersect -a hg38.all.200bp.bins.bed -b hg38.current.bed -v > hg38.current.missed.bed
+#cat hg38.current.missed.bed | awk -F '\t' -v OFS='\t' '{print $0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}' > hg38.current.missed.fill0s.bed
+#cat S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed hg38.current.missed.fill0s.bed > S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.full.bed
+### mm10
 #cat S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state | awk -F ' ' -v OFS='\t' '{print $2,$3,$4, $5, $6,$7, $11, $14,$15, $20, $22, $25, $26,$27, $28, $30, $31, $32  }' > S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
+#bedtools makewindows -g ~/softwares/S3V2_IDEAS_ESMP/genomesize/mm10.chrom.1_19XY.sizes -w 200 > mm10.all.200bp.bins.bed
+#tail -n+2 S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed  > mm10.current.bed
+#bedtools intersect -a mm10.all.200bp.bins.bed -b mm10.current.bed -v > mm10.current.missed.bed
+#cat mm10.current.missed.bed | awk -F '\t' -v OFS='\t' '{print $0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}' > mm10.current.missed.fill0s.bed
+#cat S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed mm10.current.missed.fill0s.bed > S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.full.bed
 
 ### get heatmap
-#time bash get_hg38_mm10.state_similarity.sh GATA1 Gata1 50000 50000 hg38.gene.bed mm10.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
-#time bash get_hg38_mm10.state_similarity.sh Gata1 Gata1 50000 50000 mm10.gene.bed mm10.gene.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
-#time bash get_hg38_mm10.state_similarity.sh GATA1 GATA1 50000 50000 hg38.gene.bed hg38.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed
+#time bash get_hg38_mm10.state_similarity.sh GATA1 Gata1 50000 50000 hg38.gene.bed mm10.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.full.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.full.bed
+#time bash get_hg38_mm10.state_similarity.sh Gata1 Gata1 50000 50000 mm10.gene.bed mm10.gene.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.full.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.full.bed
+#time bash get_hg38_mm10.state_similarity.sh GATA1 GATA1 50000 50000 hg38.gene.bed hg38.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.full.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.full.bed
 
 
 hg38_gene=$1
