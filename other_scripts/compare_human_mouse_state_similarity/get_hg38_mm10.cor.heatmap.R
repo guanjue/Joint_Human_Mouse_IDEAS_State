@@ -1,3 +1,4 @@
+#library(DescTools)
 args = commandArgs(trailingOnly=TRUE)
 
 hg38_gene_state = args[1]
@@ -74,4 +75,32 @@ rownames(d12_cor_mat_adj) = NULL
 pheatmap(d12_cor_mat_adj, cluster_rows=F, cluster_cols=F, color=my_colorbar, breaks = breaksList)
 dev.off()
 
+#print(paste('Entropy:', Entropy(d12_cor_mat_adj)))
+
+get_cor_score = function(x){
+x = as.numeric(x)
+#x[x<0] = 0
+#xp = -log10(pnorm(max(x), mean = mean(x), sd = sd(x), lower.tail = F))
+#xp = -ppois(max(x), mean(x[x>0]), lower.tail = F, log.p = T)
+
+#x1 = x[xp<0.05]
+#x2 = x[xp>=0.05]
+#x1 = x[x>quantile(x, 0.99)]
+#x2 = x[x<=quantile(x, 0.99)]
+#p = t.test(max(x),x, alternative='greater')$p.value
+return(mean(x[x>quantile(x, 0.9)]))
+}
+
+png(paste(output_file, '.bar.1.png', sep=''), height=200, width=800)
+s1 = apply(d12_cor_mat_adj,2,function(x) get_cor_score(x))
+s1logp = -log10(pnorm(s1, mean(s1), sd(s1), lower.tail = F))
+barplot(rbind(s1logp))
+dev.off()
+
+png(paste(output_file, '.bar.2.png', sep=''), height=200, width=800)
+s1 = apply(d12_cor_mat_adj,1,function(x) get_cor_score(x))
+s1logp = -log10(pnorm(s1, mean(s1), sd(s1), lower.tail = F))
+barplot(rbind(s1logp))
+
+dev.off()
 
