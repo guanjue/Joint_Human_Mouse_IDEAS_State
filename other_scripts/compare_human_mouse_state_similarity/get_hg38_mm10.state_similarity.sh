@@ -67,8 +67,8 @@ mm10_state_set='S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed'
 #mm10_gene_exp_win=100000
 
 ### get query gene
-cat $hg38_gene_set | awk -F '\t' -v OFS='\t' -v hg38_gene=$hg38_gene '{if (toupper($5)==toupper(hg38_gene)) print $1,$2,$3,$4,$5}' | awk -F '\t' -v OFS='\t' -v hg38_gene_exp_win=$hg38_gene_exp_win '{if ($4=="+") print $1,$2-hg38_gene_exp_win,$2+hg38_gene_exp_win,$4,$5; else print $1,$3-hg38_gene_exp_win,$3+hg38_gene_exp_win,$4,$5}' | awk -F '\t' -v OFS='\t' '{if ($2<0) print $1,0,$3,$4,$5; else print $0}' > 'hg38.gene.'$hg38_gene'.bed'
-cat $mm10_gene_set | awk -F '\t' -v OFS='\t' -v mm10_gene=$mm10_gene '{if (toupper($5)==toupper(mm10_gene)) print $1,$2,$3,$4,$5}' | awk -F '\t' -v OFS='\t' -v mm10_gene_exp_win=$mm10_gene_exp_win '{if ($4=="+") print $1,$2-mm10_gene_exp_win,$2+mm10_gene_exp_win,$4,$5; else print $1,$3-mm10_gene_exp_win,$3+mm10_gene_exp_win,$4,$5}' | awk -F '\t' -v OFS='\t' '{if ($2<0) print $1,0,$3,$4,$5; else print $0}' > 'mm10.gene.'$mm10_gene'.bed'
+cat $hg38_gene_set | awk -F '\t' -v OFS='\t' -v hg38_gene=$hg38_gene '{if (toupper($5)==toupper(hg38_gene)) print $1,$2,$3,$4,$5}' | awk -F '\t' -v OFS='\t' -v hg38_gene_exp_win=$hg38_gene_exp_win '{if ($4=="+") print $1,$2-hg38_gene_exp_win,$2+hg38_gene_exp_win,$4,$5,$4; else print $1,$3-hg38_gene_exp_win,$3+hg38_gene_exp_win,$4,$5,$4}' | awk -F '\t' -v OFS='\t' '{if ($2<0) print $1,0,$3,$4,$5,$4; else print $0}' > 'hg38.gene.'$hg38_gene'.bed'
+cat $mm10_gene_set | awk -F '\t' -v OFS='\t' -v mm10_gene=$mm10_gene '{if (toupper($5)==toupper(mm10_gene)) print $1,$2,$3,$4,$5}' | awk -F '\t' -v OFS='\t' -v mm10_gene_exp_win=$mm10_gene_exp_win '{if ($4=="+") print $1,$2-mm10_gene_exp_win,$2+mm10_gene_exp_win,$4,$5,$4; else print $1,$3-mm10_gene_exp_win,$3+mm10_gene_exp_win,$4,$5,$4}' | awk -F '\t' -v OFS='\t' '{if ($2<0) print $1,0,$3,$4,$5,$4; else print $0}' > 'mm10.gene.'$mm10_gene'.bed'
 
 ### intersect state bed
 bedtools intersect -a $hg38_state_set -b 'hg38.gene.'$hg38_gene'.bed' -wa -u > 'hg38.gene.'$hg38_gene'.matched_ct.state.bed'
