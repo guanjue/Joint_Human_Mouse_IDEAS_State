@@ -87,6 +87,7 @@ write.table(gene_cor_mat, 'hg38.mm10.TPM.cor.mat.txt', quote=F, sep='\t', col.na
 pdf('hg38.mm10.TPM.cor.distribution.pdf')
 hist(gene_cor_mat[,2], breaks=50)
 abline(v=gene_cor_mat[gene_cor_mat[,1]=='GATA1',2])
+abline(v=gene_cor_mat[gene_cor_mat[,1]=='GLOD5',2])
 abline(v=0, lwd=2)
 box()
 dev.off()
