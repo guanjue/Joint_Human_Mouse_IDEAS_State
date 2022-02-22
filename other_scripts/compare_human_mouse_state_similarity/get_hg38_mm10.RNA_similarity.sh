@@ -1,4 +1,3 @@
-cd /homes1/gxiang/softwares/EpiAlign/Ccode/example/VISION_IDEAS_states/RNAseq
 cd /Users/universe/Documents/2020_BG/compare_genes_RNAseq
 
 wget http://usevision.org/data/hg38/RNA/Oct2021/tpmFeb21_v3.tab
@@ -88,7 +87,6 @@ write.table(gene_cor_mat, 'hg38.mm10.TPM.cor.mat.txt', quote=F, sep='\t', col.na
 pdf('hg38.mm10.TPM.cor.distribution.pdf')
 hist(gene_cor_mat[,2], breaks=50)
 abline(v=gene_cor_mat[gene_cor_mat[,1]=='GATA1',2])
-abline(v=gene_cor_mat[gene_cor_mat[,1]=='GLOD5',2])
 abline(v=0, lwd=2)
 box()
 dev.off()
