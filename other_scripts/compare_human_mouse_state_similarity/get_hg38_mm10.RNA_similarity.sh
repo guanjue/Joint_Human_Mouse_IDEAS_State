@@ -1,4 +1,5 @@
 cd /homes1/gxiang/softwares/EpiAlign/Ccode/example/VISION_IDEAS_states/RNAseq
+cd /Users/universe/Documents/2020_BG/compare_genes_RNAseq
 
 wget http://usevision.org/data/hg38/RNA/Oct2021/tpmFeb21_v3.tab
 wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_39/gencode.v39.basic.annotation.gff3.gz
@@ -26,8 +27,8 @@ paste mm10.gene_types.txt mm10.gene_names.txt mm10.gene_ENS_id.txt gencode.v39.b
 
 
 # HSC, CMP, ERY, MK, GMP, MONO1, NEU
-cat hg38.tpmFeb21_v3.tab | awk -F '\t' -v OFS='\t' '{print $1, $2,$3, $22, $12,$13, $4,$5, $25,$26, $20,$21, $19, $16,$17 }' > hg38.RNAseq.TMP.matched_ct.txt
-cat mm10.rnaTPM_withcoordinates.txt | awk -F '\t' -v OFS='\t' '{print $4, $19,$20, $7, $11,$12, $13,$14, $17,$18, $15,$16, $23, $24,$25 }' > mm10.RNAseq.TMP.matched_ct.txt
+cat tpmFeb21_v3.tab | awk -F '\t' -v OFS='\t' '{print $1, $2,$3, $22, $12,$13, $4,$5, $25,$26, $20,$21, $19, $16,$17 }' > hg38.RNAseq.TMP.matched_ct.txt
+cat rnaTPM_withcoordinates.txt | awk -F '\t' -v OFS='\t' '{print $4, $19,$20, $7, $11,$12, $13,$14, $17,$18, $15,$16, $23, $24,$25 }' > mm10.RNAseq.TMP.matched_ct.txt
 
 R
 
@@ -90,6 +91,10 @@ abline(v=gene_cor_mat[gene_cor_mat[,1]=='GATA1',2])
 abline(v=0, lwd=2)
 box()
 dev.off()
+
+
+target_genes = c('GLOD5', 'HDAC6', 'ERAS', 'PCSK1N')
+print(gene_cor_mat[is.element(gene_cor_mat[,1], target_genes), ])
 
 
 
