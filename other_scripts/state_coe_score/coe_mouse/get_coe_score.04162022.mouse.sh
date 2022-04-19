@@ -109,6 +109,31 @@ rm ct$j.s$i.bed.count.txt ct$j.s$i.bed.count.bed ct$j.s$i.bed
 done
 done
 
+### get cCREs All
+bedtools intersect -a J_IDEAS.state.bed -b S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.bed -wa -u \
+> J_IDEAS.state.ccre.all.bed
+cut -f4 J_IDEAS.state.ccre.all.bed > J_IDEAS.state.inccre.all
+###
+time Rscript add_id.R S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.bed S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.bed
+###
+for i in {0..24}
+do
+echo $i
+cp S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.bed S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S$i.mat.txt
+for j in {5..36}
+do
+echo $j
+cat J_IDEAS.state.inccre.all \
+| awk -F ' ' -v OFS='\t' -v c=$j -v s=$i '{if ($c==s) print $2,$3,$4}' > ct$j.s$i.bed
+### NO filter cCRE
+bedtools intersect -a S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.bed -b ct$j.s$i.bed -c > ct$j.s$i.bed.count.bed
+cut -f5 ct$j.s$i.bed.count.bed > ct$j.s$i.bed.count.txt
+paste S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S$i.mat.txt ct$j.s$i.bed.count.txt > S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S$i.mat.txt.tmp \
+&& mv S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S$i.mat.txt.tmp S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S$i.mat.txt
+rm ct$j.s$i.bed.count.txt ct$j.s$i.bed.count.bed ct$j.s$i.bed
+done
+done
+
 
 ### get cCRE expand states
 #cat S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.bed | awk -F '\t' -v OFS='\t' -v exp_win=50000 '{if (($2-exp_win)>0) print $1,$2-exp_win, $3+exp_win, $4; else print $1,0, $3+exp_win, $4}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.expand.bed

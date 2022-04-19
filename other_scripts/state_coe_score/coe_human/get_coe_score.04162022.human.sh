@@ -99,7 +99,7 @@ sort -k4,4n HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.wit
 mv HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.withccreid.bed.tmp HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.withccreid.bed
 
 
-### get cCREs
+### get cCREs No TSS
 for i in {0..24}
 do
 echo $i
@@ -114,6 +114,31 @@ bedtools intersect -a S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.bed -b ct$j.s$i.bed -c
 cut -f5 ct$j.s$i.bed.count.bed > ct$j.s$i.bed.count.txt
 paste S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.S$i.mat.txt ct$j.s$i.bed.count.txt > S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.S$i.mat.txt.tmp \
 && mv S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.S$i.mat.txt.tmp S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.S$i.mat.txt
+rm ct$j.s$i.bed.count.txt ct$j.s$i.bed.count.bed ct$j.s$i.bed
+done
+done
+
+### get cCREs All
+bedtools intersect -a J_IDEAS.state.bed -b S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.bed -wa -u \
+> J_IDEAS.state.ccre.all.bed
+cut -f4 J_IDEAS.state.ccre.all.bed > J_IDEAS.state.inccre.all
+###
+time Rscript add_id.R S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.bed S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.bed 
+###
+for i in {0..24}
+do
+echo $i
+cp S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.bed S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S$i.mat.txt
+for j in {5..47}
+do
+echo $j
+cat J_IDEAS.state.inccre.all \
+| awk -F ' ' -v OFS='\t' -v c=$j -v s=$i '{if ($c==s) print $2,$3,$4}' > ct$j.s$i.bed
+### NO filter cCRE
+bedtools intersect -a S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.bed -b ct$j.s$i.bed -c > ct$j.s$i.bed.count.bed
+cut -f5 ct$j.s$i.bed.count.bed > ct$j.s$i.bed.count.txt
+paste S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S$i.mat.txt ct$j.s$i.bed.count.txt > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S$i.mat.txt.tmp \
+&& mv S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S$i.mat.txt.tmp S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S$i.mat.txt
 rm ct$j.s$i.bed.count.txt ct$j.s$i.bed.count.bed ct$j.s$i.bed
 done
 done
