@@ -132,8 +132,8 @@ sp_all_dist = cbind(sp_all_dist, sp_i)
 colnames(sp_all) = c(0:(state_n-1))
 #sp_all_log = sp_all
 sp_all_rowsums = rowSums(sp_all+smallnum_sp)
-#sp_all_log = log((sp_all+smallnum_sp))
-sp_all_log = sp_all
+sp_all_log = log((sp_all+smallnum_sp))
+#sp_all_log = sp_all
 
 colnames(sp_all_dist) = c(0:(state_n-1))
 #sp_all_dist_log = sp_all_dist#
@@ -401,6 +401,7 @@ colnames(sp_corfiltered_all) = c(0:(state_n-1))
 #sp_corfiltered_all_D_log = log(sp_corfiltered_all+smallnum_sp)
 #sp_all_dist_rowsums = rowSums(sp_corfiltered_all+smallnum_sp)
 sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
+#sp_corfiltered_all_D_log = sp_corfiltered_all
 
 sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
 
@@ -597,6 +598,7 @@ colnames(sp_corfiltered_all) = c(0:(state_n-1))
 #sp_corfiltered_all_D_log = sp_corfiltered_all
 #sp_corfiltered_all_D_log = log(sp_corfiltered_all+smallnum_sp)
 sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
+#sp_corfiltered_all_D_log = sp_corfiltered_all
 
 sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
 
