@@ -8,13 +8,13 @@ ct_list_human = c('AVE', 'B_B15_50', 'B_NC14_42', 'CD34_E_rep1', 'CD34_E_rep2', 
 Hs = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S0.mat.txt', header=F)
 
 ### state count * coe
-HsP = (Hs[,-c(1:4)]) * coe[1,1]
+HsP = log(Hs[,-c(1:4)]+1) * coe[1,1]
 HsD = log(Hs[,-c(1:4)]+1) * coe[1,2]
 
 for (i in 1:24){
 	print(i)
 Hs_i = read.table(paste('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S',i,'.mat.txt', sep=''), header=F)
-HsP = HsP + Hs_i[,-c(1:4)] * coe[i,1]
+HsP = HsP + log(Hs_i[,-c(1:4)]+1) * coe[i,1]
 HsD = HsD + log(Hs_i[,-c(1:4)]+1) * coe[i,2]
 }
 
@@ -36,13 +36,13 @@ ct_list_mouse = c('AVE', 'B_r1', 'B_r2', 'CFUE_r1', 'CFUMK_r1', 'CLP_r1', 'CMP_r
 Hs = read.table('../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S0.mat.txt', header=F)
 
 ### state count * coe
-HsP = (Hs[,-c(1:4)]) * coe[1,1]
+HsP = log(Hs[,-c(1:4)]+1) * coe[1,1]
 HsD = log(Hs[,-c(1:4)]+1) * coe[1,2]
 
 for (i in 1:24){
 	print(i)
 Hs_i = read.table(paste('../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S',i,'.mat.txt', sep=''), header=F)
-HsP = HsP + Hs_i[,-c(1:4)] * coe[i,1]
+HsP = HsP + log(Hs_i[,-c(1:4)]+1) * coe[i,1]
 HsD = HsD + log(Hs_i[,-c(1:4)]+1) * coe[i,2]
 }
 
