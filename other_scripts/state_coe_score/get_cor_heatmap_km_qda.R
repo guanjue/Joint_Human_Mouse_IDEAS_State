@@ -48,6 +48,10 @@ for (n in seq(10,200,10)){
 	dist_ratio = rbind(dist_ratio, c(n, dist_km, dist_ave, dss_km_n$totss))	
 }
 
+pdf('km_k_dist.pdf')
+plot(c(1,seq(10,200,10)), c(dss_km_n$totss, dist_ratio[,2]))
+lines(c(1,seq(10,200,10)), c(dss_km_n$totss, dist_ratio[,2]))
+dev.off()
 
 library(MASS)
 
@@ -114,6 +118,13 @@ pre_cluster = fit_cluster_reorder_vec_after_rescue
 print(cbind(table(pre_cluster)))
 }
 
+new_id = fit_cluster_reorder_vec_after_rescue
+cluster_id_order = c(1:length(unique(fit_cluster_reorder_vec_after_rescue)))[order(-table(fit_cluster_reorder_vec_after_rescue))]
+k = 0
+for (i in 1:length(cluster_id_order)){
+new_id[fit_cluster_reorder_vec_after_rescue==cluster_id_order[i]] = i
+}
+
 png('cCRE_coe.human.heatmap.D.qda.png', width=1200, height=1800)
 plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
@@ -121,12 +132,12 @@ my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
 dss_plot = dss
 dss_plot[dss>plot_lim_PD]=plot_lim_PD
-pheatmap(dss_plot[order(fit_cluster_reorder_vec_after_rescue),hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
+pheatmap(dss_plot[order(new_id),hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
 dev.off()
 
 
 
-dss_out = cbind(d[,c(1:4)], fit_cluster_reorder_vec_after_rescue, ds)
+dss_out = cbind(d[,c(1:4)], new_id, ds)
 colnames(dss_out)[5] = 'clusterID'
 
 write.table(dss_out, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt', quote=F, row.names=F, col.names=T, sep='\t')
