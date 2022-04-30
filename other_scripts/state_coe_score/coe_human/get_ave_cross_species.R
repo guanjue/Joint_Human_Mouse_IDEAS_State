@@ -52,12 +52,39 @@ col_breaks = c(seq(0, 2000,length=33))
 pheatmap(sig0_ave[rank,], color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
 dev.off()
 
+pdf(paste('statep_rna_coe_heatmap.HM.P.all.ccre.withcorfilter.AVE.pdf', sep=''), width=1)
+rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
+breaksList = seq(-plot_lim_P, plot_lim_P, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+col_breaks = c(seq(0, 2000,length=33))
+pheatmap(cbind(sig0_ave[rank,1]), color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+dev.off()
+
+pdf(paste('statep_rna_coe_heatmap.HM.D.all.ccre.withcorfilter.AVE.pdf', sep=''), width=1)
+rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
+breaksList = seq(-plot_lim_D, plot_lim_D, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+col_breaks = c(seq(0, 2000,length=33))
+pheatmap(cbind(sig0_ave[rank,2]), color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+dev.off()
+
+pdf(paste('statep_rna_coe_heatmap.HM.PDsum.all.ccre.withcorfilter.AVE.pdf', sep=''), width=1)
+rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
+breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+col_breaks = c(seq(0, 2000,length=33))
+pheatmap(cbind(sig0_ave[rank,1]+sig0_ave[rank,2]), color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+dev.off()
+
 write.table(sig0_ave, 'statep_rna_coe_heatmap.HM.all.ccre.withcorfilter.AVE.txt', quote=F, col.names=T, row.names=T, sep='\t')
 
 
 pdf('coe_mouse_vs_human.pdf', width=3.6, height=4)
-plot(as.numeric(as.matrix(sig0)), as.numeric(as.matrix(sig0_mouse)), xlim=c(-0.1,0.5), ylim=c(-0.1,0.5), xlab='Human', ylab='Mouse', 
+plot_lim_max = max(c(max(abs(sig0)), max(abs(sig0_mouse))) )
+plot_lim_min = min(c(min((sig0)), min((sig0_mouse))) )
+plot(as.numeric(as.matrix(sig0)), as.numeric(as.matrix(sig0_mouse)), xlim=c(plot_lim_min,plot_lim_max), ylim=c(plot_lim_min,plot_lim_max), xlab='Human', ylab='Mouse', 
 	main = paste('Pearson.Cor = ', round(cor(as.numeric(as.matrix(sig0)), as.numeric(as.matrix(sig0_mouse))), 3), sep=''))
 abline(0,1, col='red')
 dev.off()
+
 
