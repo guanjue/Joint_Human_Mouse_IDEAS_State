@@ -179,7 +179,7 @@ declare -a common_ct=("B" "CLP" "CMP" "EOS" "ERY" "GMP" "LSK" "MEP" "MK" "MONc" 
 for ct in "${common_ct[@]}"
 do
    echo "$ct"
-   time Rscript /Users/guanjuexiang/Downloads/coe_01_score/0913_good/get_coe_pcareg.human.withccre_withcorfilter.local.iter.25JES_PD.R $ct
+   time Rscript /Users/guanjuexiang/Documents/projects/Joint_Human_House_IDEAS_State/other_scripts/state_coe_score/coe_human/get_coe_pcareg.human.withccre_withcorfilter.local.iter.25JES_PD.R $ct
 done
 
 

@@ -142,7 +142,12 @@ sp_all_dist_log = log(sp_all_dist+smallnum_sp)
 #sp_all_dist_log = sp_all_dist
 
 ### prepare pca
-sp_all_PD_log = cbind(sp_all_log, sp_all_dist_log)
+adj_mean_od = mean(sp_all_dist_log)
+adj_mean_tar = mean(sp_all_log)
+adj_sd_od = sd(sp_all_dist_log)
+adj_sd_tar = sd(sp_all_log)
+#sp_all_PD_log = cbind(sp_all_log, sp_all_dist_log)
+sp_all_PD_log = cbind(sp_all_log, (sp_all_dist_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
 
 ### match high low gene means
 dmslog_noMean = ds_qt_all_log# - mean(ds_qt_all_log)
@@ -403,7 +408,9 @@ colnames(sp_corfiltered_all) = c(0:(state_n-1))
 sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
 #sp_corfiltered_all_D_log = sp_corfiltered_all
 
-sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
+#sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
+sp_all_PD_corfilter_log = cbind(sp_all_log, (sp_corfiltered_all_D_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
+
 
 
 ### dimension reducation rm 0 state info -c(1,25)
@@ -600,7 +607,8 @@ colnames(sp_corfiltered_all) = c(0:(state_n-1))
 sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
 #sp_corfiltered_all_D_log = sp_corfiltered_all
 
-sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
+#sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
+sp_all_PD_corfilter_log = cbind(sp_all_log, (sp_corfiltered_all_D_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
 
 
 ### dimension reducation rm 0 state info -c(1,25)

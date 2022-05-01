@@ -1,16 +1,18 @@
-d = read.table('S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.txt', header=T)
-
+#d = read.table('S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.txt', header=T)
+HsP_cCRE = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.atProximal.bed', header=F)
+d = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.txt', header=T)
 ds = d[,-c(1:4)]
 
 library(pheatmap)
 
 set.seed(2019)
-#used_row = sample(dim(ds)[1], dim(ds)[1])
-dss = ds[,(dim(ds)[2]/2+1):dim(ds)[2]]
+#used_row = sample(dim(ds)[1], dim(ds)[1]
+dss = ds
 
-ds_cor_P = cor(ds[,1:(dim(ds)[2]/2)])
-ds_cor_D = cor(ds[,(dim(ds)[2]/2+1):dim(ds)[2]])
-
+### ct dist cor
+ds_forcor = ds
+#ds_forcor[ds_forcor>quantile(as.numeric(as.matrix(ds)),1)] = quantile(as.numeric(as.matrix(ds)),1)
+ds_cor_D = cor(ds_forcor)
 hclust_cor = hclust(as.dist(1-ds_cor_D))
 hclust_cor_order = hclust_cor$order
 
@@ -18,8 +20,8 @@ png('cCRE_coe.human.heatmap.D.cttree.png', height=600, width=1200)
 plot(hclust_cor, hang = -1, cex = 2, lwd=2)
 dev.off()
 
-rep1 = c(1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42)
-rep2 = c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43)
+rep1 = c(1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40)
+rep2 = c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41)
 
 dss_ct = c()
 for (i in 1:length(rep1)){
@@ -105,7 +107,7 @@ pheatmap(dss_plot[order(x_dist_to_newcenter_reassign),hclust_cor_order], color=m
 dev.off()
 
 
-
+### QDA rescue
 set.seed(2019)
 pre_cluster = x_dist_to_newcenter_reassign
 for (i in 1:2){
@@ -118,13 +120,36 @@ pre_cluster = fit_cluster_reorder_vec_after_rescue
 print(cbind(table(pre_cluster)))
 }
 
+
+### reorder clustering results
 new_id = fit_cluster_reorder_vec_after_rescue
-cluster_id_order = c(1:length(unique(fit_cluster_reorder_vec_after_rescue)))[order(-table(fit_cluster_reorder_vec_after_rescue))]
+new_id_meta = rep(-1, length(fit_cluster_reorder_vec_after_rescue))
+### get mean vec
+dss_mean_vec = c()
+for (i in c(1:length(unique(fit_cluster_reorder_vec_after_rescue)))){
+	dss_mean_vec = rbind(dss_mean_vec, colMeans(dss[fit_cluster_reorder_vec_after_rescue==i,]))
+}
+### kmean meta
+set.seed(2019)
+kmeta = 10
+kmeans_meta = kmeans(dss_mean_vec, centers = kmeta)
+old_km_ids = 1:length(unique(fit_cluster_reorder_vec_after_rescue))
+cluster_id_order = c(old_km_ids)[order(kmeans_meta$cluster)]
+
+### get kmeans meta clusterID
+for (i in 1:kmeta){
+meta_i_vec = old_km_ids[kmeans_meta$cluster==i]
+new_id_meta[is.element(fit_cluster_reorder_vec_after_rescue, meta_i_vec)] = i
+}
+
+### reorder clusters
 k = 0
 for (i in 1:length(cluster_id_order)){
 new_id[fit_cluster_reorder_vec_after_rescue==cluster_id_order[i]] = i
 }
 
+
+### plot heatmap
 png('cCRE_coe.human.heatmap.D.qda.png', width=1200, height=1800)
 plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
@@ -135,15 +160,37 @@ dss_plot[dss>plot_lim_PD]=plot_lim_PD
 pheatmap(dss_plot[order(new_id),hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
 dev.off()
 
+png('cCRE_coe.human.heatmap.D.qda.clusterID.png', width=200, height=1800)
+library(RColorBrewer)
+n = length(unique(new_id))
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+dss_cluster_id = cbind(new_id, new_id_meta)
+longest_colname = max(nchar(colnames(dss)))
+colnames(dss_cluster_id) = c(colnames(dss)[nchar(colnames(dss))==longest_colname][1], paste(c(rep('b', longest_colname-2), 'ID'), collapse=''))
+pheatmap(dss_cluster_id[order(new_id),], color=col_vector, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
+dev.off()
 
 
-dss_out = cbind(d[,c(1:4)], new_id, ds)
-colnames(dss_out)[5] = 'clusterID'
+png('cCRE_coe.human.heatmap.D.qda.meanvec.png', width=1200, height=1800)
+plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
+breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+col_breaks = c(seq(0, 2000,length=33))
+dss_plot = dss
+dss_plot[dss>plot_lim_PD]=plot_lim_PD
+pheatmap(dss_mean_vec[cluster_id_order,hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
+dev.off()
+
+dss_out = cbind(d[,c(1:4)], new_id, new_id_meta, ds)
+colnames(dss_out)[5:6] = c('clusterID', 'meta_clusterID')
 
 write.table(dss_out, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt', quote=F, row.names=F, col.names=T, sep='\t')
 
 
-
+cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if ($5!=40 && $6==9) print $1,$2,$3,$5}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaERY.txt
+cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if ($5==19 && $6==5) print $1,$2,$3,$5}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaMONc.txt
+cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if (($5==19 && $6==5) || ($5!=40 && $6==9)) print $1,$2,$3,$5}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaERY_MONc.txt
 
 
 

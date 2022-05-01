@@ -129,19 +129,19 @@ sp_all_dist = cbind(sp_all_dist, sp_i)
 
 
 colnames(sp_all) = c(0:(state_n-1))
+#sp_all_log = sp_all
+sp_all_rowsums = rowSums(sp_all+smallnum_sp)
 sp_all_log = log((sp_all+smallnum_sp))
+#sp_all_log = sp_all
 
 colnames(sp_all_dist) = c(0:(state_n-1))
+#sp_all_dist_log = sp_all_dist#
+sp_all_dist_rowsums = rowSums(sp_all_dist+smallnum_sp)
 sp_all_dist_log = log(sp_all_dist+smallnum_sp)
+#sp_all_dist_log = sp_all_dist
 
 ### prepare pca
-adj_mean_od = mean(sp_all_dist_log)
-adj_mean_tar = mean(sp_all_log)
-adj_sd_od = sd(sp_all_dist_log)
-adj_sd_tar = sd(sp_all_log)
-global_scale = 1/mean(sp_all_dist_log)*mean(sp_all_log)
-#sp_all_PD_log = cbind(sp_all_log, sp_all_dist_log*global_scale)
-sp_all_PD_log = cbind(sp_all_log, (sp_all_dist_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
+sp_all_PD_log = cbind(sp_all_log, sp_all_dist_log)
 
 ### match high low gene means
 dmslog_noMean = ds_qt_all_log# - mean(ds_qt_all_log)
@@ -396,9 +396,13 @@ k = k+1
 }
 
 colnames(sp_corfiltered_all) = c(0:(state_n-1))
+#sp_corfiltered_all_D_log = sp_corfiltered_all
+#sp_corfiltered_all_D_log = log(sp_corfiltered_all+smallnum_sp)
+#sp_all_dist_rowsums = rowSums(sp_corfiltered_all+smallnum_sp)
 sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
-#sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log*global_scale)
-sp_all_PD_corfilter_log = cbind(sp_all_log, (sp_corfiltered_all_D_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
+#sp_corfiltered_all_D_log = sp_corfiltered_all
+
+sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
 
 
 ### dimension reducation rm 0 state info -c(1,25)
@@ -595,8 +599,7 @@ colnames(sp_corfiltered_all) = c(0:(state_n-1))
 sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
 #sp_corfiltered_all_D_log = sp_corfiltered_all
 
-#sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log*global_scale)
-sp_all_PD_corfilter_log = cbind(sp_all_log, (sp_corfiltered_all_D_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
+sp_all_PD_corfilter_log = cbind(sp_all_log, sp_corfiltered_all_D_log)
 
 
 ### dimension reducation rm 0 state info -c(1,25)

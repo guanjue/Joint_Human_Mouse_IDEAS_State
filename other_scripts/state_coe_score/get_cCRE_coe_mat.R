@@ -6,28 +6,33 @@ ct_list_human = c('AVE', 'B_B15_50', 'B_NC14_42', 'CD34_E_rep1', 'CD34_E_rep2', 
 
 ### read state count
 Hs = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S0.mat.txt', header=F)
-HsP_cCRE = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.atProximal.bed', header=F)
+
+### normalize dist
+HsP0 = as.matrix(Hs[,-c(1:4)])
+HsD0 = as.matrix(Hs[,-c(1:4)])
 
 ### state count * coe
-HsP = log(Hs[,-c(1:4)]+1) * coe[1,1]
-HsD = log(Hs[,-c(1:4)]+1) * coe[1,2]
+HsP = log(HsP0+1) * coe[1,1]
+HsD = log(HsD0+1) * coe[1,2]
 
 for (i in 1:24){
 	print(i)
 Hs_i = read.table(paste('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S',i,'.mat.txt', sep=''), header=F)
-HsP = HsP + log(Hs_i[,-c(1:4)]+1) * coe[i,1]
-HsD = HsD + log(Hs_i[,-c(1:4)]+1) * coe[i,2]
+HsP0 = as.matrix(Hs_i[,-c(1:4)])
+HsD0 = as.matrix(Hs_i[,-c(1:4)])
+HsP = HsP + log(HsP0+1) * coe[i+1,1]
+HsD = HsD + log(HsD0+1) * coe[i+1,2]
 }
 
 ### merge P & D
-HsPD = HsD
-HsPD[HsP_cCRE[,5]!=0,] = HsPD[HsP_cCRE[,5]!=0,] + HsP[HsP_cCRE[,5]!=0,]
+#HsPD = HsD
 
 ### add colnames
-colnames(HsPD) = ct_list_human
+colnames(HsP) = paste(ct_list_human, '_P', sep='')
+colnames(HsD) = paste(ct_list_human, '_D', sep='')
 
 ### output mat
-HsPD_mat = cbind(Hs[,1:4], round(HsPD,5))
+HsPD_mat = cbind(Hs[,1:4], (HsP), (HsD))
 colnames(HsPD_mat)[1:4] = c('chr','start','end','id')
 
 write.table(HsPD_mat, '../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.txt', quote=F, col.names=T, row.names=F, sep='\t')
@@ -39,31 +44,36 @@ ct_list_mouse = c('AVE', 'B_r1', 'B_r2', 'CFUE_r1', 'CFUMK_r1', 'CLP_r1', 'CMP_r
 
 ### read state count
 Hs = read.table('../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S0.mat.txt', header=F)
-HsP_cCRE = read.table('../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.withid.atProximal.bed', header=F)
+
+### normalize dist
+HsP0 = as.matrix(Hs[,-c(1:4)])
+HsD0 = as.matrix(Hs[,-c(1:4)])
 
 ### state count * coe
-HsP = log(Hs[,-c(1:4)]+1) * coe[1,1]
-HsD = log(Hs[,-c(1:4)]+1) * coe[1,2]
+HsP = log(HsP0+1) * coe[1,1]
+HsD = log(HsD0+1) * coe[1,2]
 
 for (i in 1:24){
 	print(i)
 Hs_i = read.table(paste('../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.S',i,'.mat.txt', sep=''), header=F)
-HsP = HsP + log(Hs_i[,-c(1:4)]+1) * coe[i,1]
-HsD = HsD + log(Hs_i[,-c(1:4)]+1) * coe[i,2]
+HsP0 = as.matrix(Hs_i[,-c(1:4)])
+HsD0 = as.matrix(Hs_i[,-c(1:4)])
+HsP = HsP + log(HsP0+1) * coe[i+1,1]
+HsD = HsD + log(HsD0+1) * coe[i+1,2]
 }
 
 ### merge P & D
-HsPD = HsD
-HsPD[HsP_cCRE[,5]!=0,] = HsPD[HsP_cCRE[,5]!=0,] + HsP[HsP_cCRE[,5]!=0,]
+#HsPD = HsD
 
 ### add colnames
-colnames(HsPD) = ct_list_mouse
+colnames(HsP) = paste(ct_list_mouse, '_P', sep='')
+colnames(HsD) = paste(ct_list_mouse, '_D', sep='')
 
 ### output mat
-HsPD_mat = cbind(Hs[,1:4], round(HsPD,5))
+HsPD_mat = cbind(Hs[,1:4], (HsP), (HsD))
 colnames(HsPD_mat)[1:4] = c('chr','start','end','id')
 
-write.table(HsPD, '../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.txt', quote=F, col.names=T, row.names=F, sep='\t')
+write.table(HsPD_mat, '../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.txt', quote=F, col.names=T, row.names=F, sep='\t')
 
 
 
