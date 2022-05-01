@@ -18,7 +18,7 @@ dsP = as.matrix(ds[,1:(dim(ds)[2]/2)])
 dsD = as.matrix(ds[,(dim(ds)[2]/2+1):dim(ds)[2]])
 dsPadj = (dsP - mean(dsP))/sd(dsP) * sd(dsD) + mean(dsD)
 dsMerge = dsD
-dsMerge[HsP_cCRE_s[,5]!=0,] = dsPadj[HsP_cCRE_s[,5]!=0,]/2 + dsD[HsP_cCRE_s[,5]!=0,]/2
+dsMerge[HsP_cCRE[,5]!=0,] = dsPadj[HsP_cCRE[,5]!=0,]/2 + dsD[HsP_cCRE[,5]!=0,]/2
 dsMerge_output = cbind(d[,1:4], dsMerge)
 colnames(dsMerge_output)[1:4] = c('chr','start','end','id')
 dsMerge_output = dsMerge_output[,!is.element(colnames(dsMerge_output), c('NEU_C0011IH2_D', 'NEU_C001UYH1_D'))]
@@ -47,7 +47,7 @@ for (i in 1:length(rep1)){
 	dssDadj_ct = cbind(dssDadj_ct, rowMeans(cbind(dssDadj[,rep1[i]], dssDadj[,rep2[i]])))
 }
 
-
+### get subsample umap
 HsP_cCRE_s = HsP_cCRE[used_row,]
 
 dss = dssD
@@ -99,6 +99,7 @@ plot(dss_umap$layout[,1], dss_umap$layout[,2], col='gray90', pch=16)
 points(dss_umap$layout[cCRE_clusters[,6]==metaC_i,1], dss_umap$layout[cCRE_clusters[,6]==metaC_i,2], col='black', pch=16)
 dev.off()
 }
+
 
 
 

@@ -1,6 +1,8 @@
 #d = read.table('S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.txt', header=T)
 HsP_cCRE = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.atProximal.bed', header=F)
 d = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.txt', header=T)
+dPDsep = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.txt', header=T)
+
 ds = d[,-c(1:4)]
 
 library(pheatmap)
@@ -10,7 +12,8 @@ set.seed(2019)
 dss = ds
 
 ### ct dist cor
-ds_forcor = ds
+dPDsep = dPDsep[,!is.element(colnames(dPDsep), c('chr', 'start', 'end', 'id', 'NEU_C0011IH2_P','NEU_C001UYH1_P', 'NEU_C0011IH2_D','NEU_C001UYH1_D'))]
+ds_forcor = dPDsep[,(dim(dPDsep)[2]/2+1):dim(dPDsep)[2]]
 #ds_forcor[ds_forcor>quantile(as.numeric(as.matrix(ds)),1)] = quantile(as.numeric(as.matrix(ds)),1)
 ds_cor_D = cor(ds_forcor)
 hclust_cor = hclust(as.dist(1-ds_cor_D))
@@ -188,9 +191,12 @@ colnames(dss_out)[5:6] = c('clusterID', 'meta_clusterID')
 write.table(dss_out, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt', quote=F, row.names=F, col.names=T, sep='\t')
 
 
-cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if ($5!=40 && $6==9) print $1,$2,$3,$5}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaERY.txt
-cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if ($5==19 && $6==5) print $1,$2,$3,$5}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaMONc.txt
-cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if (($5==19 && $6==5) || ($5!=40 && $6==9)) print $1,$2,$3,$5}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaERY_MONc.txt
+#Great analysis:
+#Proximal: 5.0kb upstream, 1.0kb downstream, 
+#Distal: up to 100kb
 
+#cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if ($5!=40 && $6==9) print $1,$2,$3}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaERY.txt
+#cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if ($5==19 && $6==5) print $1,$2,$3}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaMONc.txt
+#cat S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt | awk -F '\t' -v OFS='\t' '{if (($5==19 && $6==5) || ($5!=40 && $6==9)) print $1,$2,$3}' > S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.metaERY_MONc.txt
 
 
