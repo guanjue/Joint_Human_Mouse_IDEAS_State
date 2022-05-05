@@ -35,8 +35,13 @@ within_c_dist = function(x, c_vec){
 	within_dist = 0
 	for (i in min(c_vec):max(c_vec)){
 		x_i = x[c_vec==i,]
-		x_i_colm = colMeans(x_i)
-		x_i_dist = sum(apply(x_i, 1, function(x) sum((x-x_i_colm)^2)))
+		if (sum(c_vec==i)>1){
+			x_i_colm = colMeans(x_i)
+			x_i_dist = sum(apply(x_i, 1, function(x) sum((x-x_i_colm)^2)))
+		} else{
+			x_i_colm = as.numeric(x_i)
+			x_i_dist = 0
+		}
 		within_dist = within_dist+x_i_dist
 	}
 	return(within_dist)
@@ -59,11 +64,11 @@ lines(c(1,seq(10,200,10)), c(dss_km_n$totss, dist_ratio[,2]))
 dev.off()
 
 library(MASS)
-
 ### get 100 round of km k=50
-km_k = 50
+set.seed(2019)
+km_k = 100
 km_centers = c()
-iter_n = 100
+iter_n = 2
 for (r in 1:iter_n){
 	print(r)
 	dss_km_i = kmeans(dss_ct, km_k)
@@ -82,11 +87,16 @@ dev.off()
 
 kmkm_n_z = ( table(kmkm$cluster) - mean(table(kmkm$cluster)) ) /sd(table(kmkm$cluster))
 #used_kmkm_centers = which(pnorm(kmkm_n_z, lower.tail=TRUE)>=0.05)
-used_kmkm_centers = which(table(kmkm$cluster)>=(iter_n/2))
+#used_kmkm_centers = which(table(kmkm$cluster)>=(iter_n/2))
+used_kmkm_centers = which(table(kmkm$cluster)>=0)
 ### get new km centers
 km_new_centers = c()
 for (i in 1:length(used_kmkm_centers)){
-km_new_centers = rbind(km_new_centers, colMeans(as.matrix(km_centers)[kmkm$cluster==i,]))
+	if (sum(kmkm$cluster==i)>1){
+		km_new_centers = rbind(km_new_centers, colMeans(as.matrix(km_centers)[kmkm$cluster==i,]))
+	}else{
+		km_new_centers = rbind(km_new_centers, as.matrix(km_centers)[kmkm$cluster==i,])
+	}
 }
 
 ### reassign cCREs into reproducible clusters
@@ -113,48 +123,103 @@ dev.off()
 ### QDA rescue
 set.seed(2019)
 pre_cluster = x_dist_to_newcenter_reassign
-for (i in 1:2){
-qda_model = qda(round(dss_ct,3), pre_cluster)
-fit_cluster_reorder_vec_after_rescue = predict(qda_model, dss_ct)$class
-#fit_cluster_reorder_vec[fit_cluster_reorder_vec==0] = fit_cluster_reorder_vec_after_rescue
-print(sum(pre_cluster!=fit_cluster_reorder_vec_after_rescue))
-if (sum(pre_cluster!=fit_cluster_reorder_vec_after_rescue)==0){break}
-pre_cluster = fit_cluster_reorder_vec_after_rescue
-print(cbind(table(pre_cluster)))
-}
-
+#for (i in 1:1){
+#qda_model = qda(round(dss_ct,3), pre_cluster)
+#fit_cluster_reorder_vec_after_rescue = predict(qda_model, dss_ct)$class
+##fit_cluster_reorder_vec[fit_cluster_reorder_vec==0] = fit_cluster_reorder_vec_after_rescue
+#print(sum(pre_cluster!=fit_cluster_reorder_vec_after_rescue))
+#if (sum(pre_cluster!=fit_cluster_reorder_vec_after_rescue)==0){break}
+#pre_cluster = fit_cluster_reorder_vec_after_rescue
+#print(cbind(table(pre_cluster)))
+#}
+fit_cluster_reorder_vec_after_rescue = pre_cluster
 
 ### reorder clustering results
-new_id = fit_cluster_reorder_vec_after_rescue
-new_id_meta = rep(-1, length(fit_cluster_reorder_vec_after_rescue))
 ### get mean vec
 dss_mean_vec = c()
 for (i in c(1:length(unique(fit_cluster_reorder_vec_after_rescue)))){
 	dss_mean_vec = rbind(dss_mean_vec, colMeans(dss[fit_cluster_reorder_vec_after_rescue==i,]))
 }
+
+
+### kmean meta
+set.seed(2019)
+dist_ratio = c()
+for (n in seq(2,30,1)){
+	print(n)
+	dss_km_n = kmeans(dss_mean_vec, n)
+	#print(table(dss_km_n$cluster))
+	dist_km = within_c_dist(dss_mean_vec, dss_km_n$cluster)
+	#print(dist_km)
+	dist_ratio = rbind(dist_ratio, c(n, dist_km, dss_km_n$totss))	
+}
+
+pdf('km_k_dist.ave.pdf')
+plot(c(1,seq(2,30,1)), c(dss_km_n$totss, dist_ratio[,2]))
+lines(c(1,seq(2,30,1)), c(dss_km_n$totss, dist_ratio[,2]))
+dev.off()
+
+
+### kmean meta
+#set.seed(2019)
+#kmeta = 20
+#kmeans_meta = kmeans(dss_mean_vec, centers = kmeta)
+#old_km_ids = 1:length(unique(fit_cluster_reorder_vec_after_rescue))
+#cluster_id_order = c(old_km_ids)[order(kmeans_meta$cluster)]
+
+#### get kmeans meta clusterID
+#new_id_meta = rep(-1, length(fit_cluster_reorder_vec_after_rescue))
+#for (i in 1:kmeta){
+#meta_i_vec = old_km_ids[kmeans_meta$cluster==i]
+#new_id_meta[is.element(fit_cluster_reorder_vec_after_rescue, meta_i_vec)] = i
+#}
+
+#### reorder clusters
+#new_id = fit_cluster_reorder_vec_after_rescue
+#k = 0
+#for (i in 1:length(cluster_id_order)){
+#new_id[fit_cluster_reorder_vec_after_rescue==cluster_id_order[i]] = i
+#}
+
+
 ### kmean meta
 set.seed(2019)
 kmeta = 20
-kmeans_meta = kmeans(dss_mean_vec, centers = kmeta)
-old_km_ids = 1:length(unique(fit_cluster_reorder_vec_after_rescue))
-cluster_id_order = c(old_km_ids)[order(kmeans_meta$cluster)]
+rownames(dss_mean_vec) = 1:dim(dss_mean_vec)[1]
+### add noise to split high vs low sig
+dss_mean_vec_add_noise = dss_mean_vec + matrix(runif(dim(dss_mean_vec)[1]*dim(dss_mean_vec)[2], -0.05, 0.05), dim(dss_mean_vec)[1], dim(dss_mean_vec)[2])
+dss_mean_vec_cor_dist = as.dist(1 - cor(t(dss_mean_vec_add_noise)))
+kmeans_meta = hclust(dss_mean_vec_cor_dist, method = 'complete')
 
-### get kmeans meta clusterID
-for (i in 1:kmeta){
-meta_i_vec = old_km_ids[kmeans_meta$cluster==i]
-new_id_meta[is.element(fit_cluster_reorder_vec_after_rescue, meta_i_vec)] = i
-}
+pdf('meta.tree.pdf', width=30)
+plot(kmeans_meta)
+dev.off()
 
 ### reorder clusters
 k = 0
-for (i in 1:length(cluster_id_order)){
-new_id[fit_cluster_reorder_vec_after_rescue==cluster_id_order[i]] = i
+new_id = fit_cluster_reorder_vec_after_rescue
+for (i in kmeans_meta$order){
+k = k+1
+new_id[fit_cluster_reorder_vec_after_rescue==i] = k
+}
+
+### cut tree
+library(dynamicTreeCut)
+kmeans_meta_dynamicTC = cutreeDynamic(kmeans_meta, minClusterSize=1, deepSplit=4)
+table(kmeans_meta_dynamicTC)
+old_km_ids = 1:km_k
+
+### get kmeans meta clusterID
+new_id_meta = rep(-1, length(fit_cluster_reorder_vec_after_rescue))
+for (i in old_km_ids){
+meta_i_vec = i #old_km_ids[kmeans_meta_dynamicTC==i]
+new_id_meta[fit_cluster_reorder_vec_after_rescue == i] = kmeans_meta_dynamicTC[i]
 }
 
 
 ### plot heatmap
 png('cCRE_coe.human.heatmap.D.qda.png', width=1200, height=1800)
-plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
+plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.995)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
@@ -165,30 +230,33 @@ dev.off()
 
 png('cCRE_coe.human.heatmap.D.qda.clusterID.png', width=200, height=1800)
 library(RColorBrewer)
-n = length(unique(new_id))
+n = 200#length(unique(new_id))
 qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
-col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+col_vector = c(unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))) )
 dss_cluster_id = cbind(new_id, new_id_meta)
 longest_colname = max(nchar(colnames(dss)))
 colnames(dss_cluster_id) = c(colnames(dss)[nchar(colnames(dss))==longest_colname][1], paste(c(rep('b', longest_colname-2), 'ID'), collapse=''))
 pheatmap(dss_cluster_id[order(new_id),], color=col_vector, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
 dev.off()
 
-
 png('cCRE_coe.human.heatmap.D.qda.meanvec.png', width=1200, height=1800)
-plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
+plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.995)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
 dss_plot = dss
 dss_plot[dss>plot_lim_PD]=plot_lim_PD
-pheatmap(dss_mean_vec[cluster_id_order,hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
+pheatmap(dss_mean_vec[kmeans_meta$order,hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
 dev.off()
+
+
+unique(kmeans_meta_dynamicTC[kmeans_meta$order])
 
 dss_out = cbind(d[,c(1:4)], new_id, new_id_meta, ds)
 colnames(dss_out)[5:6] = c('clusterID', 'meta_clusterID')
 
-write.table(dss_out, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt', quote=F, row.names=F, col.names=T, sep='\t')
+write.table(dss_out, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.txt', quote=F, row.names=F, col.names=T, sep='\t')
+write.table(cbind(table(kmeans_meta_dynamicTC[kmeans_meta$order]))[unique(kmeans_meta_dynamicTC[kmeans_meta$order]),], 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.metaCluster_Heatmap_order.txt', quote=F, row.names=T, col.names=T, sep='\t')
 
 
 #Great analysis:

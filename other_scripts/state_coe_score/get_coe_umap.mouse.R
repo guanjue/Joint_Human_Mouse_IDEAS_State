@@ -85,12 +85,12 @@ dev.off()
 
 
 ### get umap with meta-clusterID
-cCRE_clusters = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt', header=T)[used_row,]
+cCRE_clusters = read.table('../coe_analysis_mouse/S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.PDmerged.clusterID.txt', header=T)[used_row,]
 
 dir.create('coe_umap_PD_meta')
 for (i in 1:length(unique(cCRE_clusters[,6]))){
 	metaC_i = unique(cCRE_clusters[,6])[i]
-png(paste('coe_umap_PD_meta/', 'state_coe.human.umap.PD.', metaC_i,'.png', sep=''))
+png(paste('coe_umap_PD_meta/', 'state_coe.mouse.umap.PD.', metaC_i,'.png', sep=''))
 plot(dss_umap$layout[,1], dss_umap$layout[,2], col='gray90', pch=16)
 points(dss_umap$layout[cCRE_clusters[,6]==metaC_i,1], dss_umap$layout[cCRE_clusters[,6]==metaC_i,2], col='black', pch=16)
 dev.off()

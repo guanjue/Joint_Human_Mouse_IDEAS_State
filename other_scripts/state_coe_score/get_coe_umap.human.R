@@ -89,7 +89,7 @@ dev.off()
 
 
 ### get umap with meta-clusterID
-cCRE_clusters = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.clusterID.txt', header=T)[used_row,]
+cCRE_clusters = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.txt', header=T)[used_row,]
 
 dir.create('coe_umap_PD_meta')
 for (i in 1:length(unique(cCRE_clusters[,6]))){
