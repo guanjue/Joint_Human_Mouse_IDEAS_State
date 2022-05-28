@@ -13,12 +13,19 @@ library(LSD)
 
 HsP_cCRE = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.atProximal.bed', header=F)
 
+coe_mat = read.table('../coe_analysis/statep_rna_coe_heatmap.HM.all.ccre.withcorfilter.AVE.txt', header=T)
+scale_ratio = max(coe_mat[,2])/max(coe_mat[,1])
+
 ### get
 dsP = as.matrix(ds[,1:(dim(ds)[2]/2)])
 dsD = as.matrix(ds[,(dim(ds)[2]/2+1):dim(ds)[2]])
-dsPadj = (dsP - mean(dsP))/sd(dsP) * sd(dsD) + mean(dsD)
-dsMerge = dsD
-dsMerge[HsP_cCRE[,5]!=0,] = dsPadj[HsP_cCRE[,5]!=0,]/2 + dsD[HsP_cCRE[,5]!=0,]/2
+#dsPadj = (dsP - mean(dsP))/sd(dsP) * sd(dsD) + mean(dsD)
+
+dsPadj = dsP * scale_ratio
+
+#dsMerge = dsD
+#dsMerge[HsP_cCRE[,5]!=0,] = dsPadj[HsP_cCRE[,5]!=0,]/2 + dsD[HsP_cCRE[,5]!=0,]/2
+dsMerge = dsD + dsPadj
 dsMerge_output = cbind(d[,1:4], dsMerge)
 colnames(dsMerge_output)[1:4] = c('chr','start','end','id')
 dsMerge_output = dsMerge_output[,!is.element(colnames(dsMerge_output), c('NEU_C0011IH2_D', 'NEU_C001UYH1_D'))]
@@ -30,7 +37,8 @@ set.seed(2019)
 used_row = sample(dim(ds)[1], 20000)
 dssP = as.matrix(ds[used_row,1:(dim(ds)[2]/2)])
 dssD = as.matrix(ds[used_row,(dim(ds)[2]/2+1):dim(ds)[2]])
-dssPadj = (dssP - mean(dssP))/sd(dssP) * sd(dssD) + mean(dssD)
+#dssPadj = (dssP - mean(dssP))/sd(dssP) * sd(dssD) + mean(dssD)
+dssPadj = dssP * scale_ratio
 dssDadj = (dssD - mean(dssD))/sd(dssD) * sd(dssP) + mean(dssP)
 
 rep1 = c(1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42)
@@ -50,14 +58,17 @@ for (i in 1:length(rep1)){
 ### get subsample umap
 HsP_cCRE_s = HsP_cCRE[used_row,]
 
-dss = dssD
-dss[HsP_cCRE_s[,5]!=0,] = dssPadj[HsP_cCRE_s[,5]!=0,]/2 + dssD[HsP_cCRE_s[,5]!=0,]/2 #( dssP+dssDadj)[HsP_cCRE_s[,5]!=0,]/2
+#dss = dssD
+#dss[HsP_cCRE_s[,5]!=0,] = dssPadj[HsP_cCRE_s[,5]!=0,]/2 + dssD[HsP_cCRE_s[,5]!=0,]/2 #( dssP+dssDadj)[HsP_cCRE_s[,5]!=0,]/2
+dss = dssD + dssPadj
 
 #dssPD_ct = dssD_ct
 #dssPD_ct[HsP_cCRE_s[,5]!=0,] = dssP_ct[HsP_cCRE_s[,5]!=0,] + dssDadj_ct[HsP_cCRE_s[,5]!=0,]
 
-dssPD_ct = dssD_ct
-dssPD_ct[HsP_cCRE_s[,5]!=0,] = dssPadj_ct[HsP_cCRE_s[,5]!=0,]/2 + dssD_ct[HsP_cCRE_s[,5]!=0,]/2
+#dssPD_ct = dssD_ct
+#dssPD_ct[HsP_cCRE_s[,5]!=0,] = dssPadj_ct[HsP_cCRE_s[,5]!=0,]/2 + dssD_ct[HsP_cCRE_s[,5]!=0,]/2
+dssPD_ct = dssD_ct + dssPadj_ct
+
 colnames(dssPD_ct) = colnames(dss)[rep1]
 
 #dssPD_ct = cbind(dssPadj, dssD_ct)
@@ -70,15 +81,15 @@ set.seed(2019)
 dss_umap = umap(round(dssPD_ct[, colnames(dssPD_ct)!='NEU_C0011IH2_D'], 5), preserve.seed=T)
 
 
-dir.create('coe_umap_PD')
+dir.create('coe_umap_PD_esRP')
 ### plot heatscatter plot
-png('coe_umap_PD/state_coe.human.umap.PD.png')
+png('coe_umap_PD_esRP/state_coe.human.umap.PD.png')
 heatscatter(dss_umap$layout[,1], dss_umap$layout[,2])
 dev.off()
 
 for (i in 1:dim(dss)[2]){
 	ct_i = colnames(dss)[i]
-png(paste('coe_umap_PD/', 'state_coe.human.umap.PD.', ct_i,'.png', sep=''))
+png(paste('coe_umap_PD_esRP/', 'state_coe.human.umap.PD.', ct_i,'.png', sep=''))
 rbPal = colorRampPalette(c('blue', 'gray90','red'))
 color_sig_range = (dss[,i])
 color_sig_range[color_sig_range>quantile(as.numeric(as.matrix(dss)),0.99)] = quantile(as.numeric(as.matrix(dss)),0.99)
@@ -91,10 +102,10 @@ dev.off()
 ### get umap with meta-clusterID
 cCRE_clusters = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.txt', header=T)[used_row,]
 
-dir.create('coe_umap_PD_meta')
+dir.create('coe_umap_PD_meta_clusterBinary')
 for (i in 1:length(unique(cCRE_clusters[,6]))){
 	metaC_i = unique(cCRE_clusters[,6])[i]
-png(paste('coe_umap_PD_meta/', 'state_coe.human.umap.PD.', metaC_i,'.png', sep=''))
+png(paste('coe_umap_PD_meta_clusterBinary/', 'state_coe.human.umap.PD.', metaC_i,'.png', sep=''))
 plot(dss_umap$layout[,1], dss_umap$layout[,2], col='gray90', pch=16)
 points(dss_umap$layout[cCRE_clusters[,6]==metaC_i,1], dss_umap$layout[cCRE_clusters[,6]==metaC_i,2], col='black', pch=16)
 dev.off()

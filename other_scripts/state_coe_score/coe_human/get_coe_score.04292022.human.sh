@@ -182,9 +182,11 @@ do
    time Rscript /Users/guanjuexiang/Documents/projects/Joint_Human_House_IDEAS_State/other_scripts/state_coe_score/coe_human/get_coe_pcareg.human.withccre_withcorfilter.local.iter.25JES_PD.R $ct
 done
 
-
+### get human ave beta
 Rscript get_ave.R
 
+### get mouse human ave beta
 Rscript get_ave_cross_species.R
 
-
+### get cCRE esRP mat in both species
+Rscript get_cCRE_coe_mat.R

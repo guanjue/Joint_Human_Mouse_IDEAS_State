@@ -16,6 +16,7 @@ dPDsep = dPDsep[,!is.element(colnames(dPDsep), c('chr', 'start', 'end', 'id', 'N
 ds_forcor = dPDsep[,(dim(dPDsep)[2]/2+1):dim(dPDsep)[2]]
 #ds_forcor[ds_forcor>quantile(as.numeric(as.matrix(ds)),1)] = quantile(as.numeric(as.matrix(ds)),1)
 ds_cor_D = cor(ds_forcor)
+#ds_cor_D = cor(ds)
 hclust_cor = hclust(as.dist(1-ds_cor_D))
 hclust_cor_order = hclust_cor$order
 
@@ -188,7 +189,9 @@ kmeta = 20
 rownames(dss_mean_vec) = 1:dim(dss_mean_vec)[1]
 ### add noise to split high vs low sig
 dss_mean_vec_add_noise = dss_mean_vec + matrix(runif(dim(dss_mean_vec)[1]*dim(dss_mean_vec)[2], -0.05, 0.05), dim(dss_mean_vec)[1], dim(dss_mean_vec)[2])
-dss_mean_vec_cor_dist = as.dist(1 - cor(t(dss_mean_vec_add_noise)))
+#dss_mean_vec_cor_dist = as.dist(1 - cor(t(dss_mean_vec_add_noise)))
+library(lsa)
+dss_mean_vec_cor_dist = as.dist(1 - cosine(t(dss_mean_vec_add_noise)))
 kmeans_meta = hclust(dss_mean_vec_cor_dist, method = 'complete')
 
 pdf('meta.tree.pdf', width=30)
@@ -219,7 +222,7 @@ new_id_meta[fit_cluster_reorder_vec_after_rescue == i] = kmeans_meta_dynamicTC[i
 
 ### plot heatmap
 png('cCRE_coe.human.heatmap.D.qda.png', width=1200, height=1800)
-plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.995)
+plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
@@ -240,7 +243,7 @@ pheatmap(dss_cluster_id[order(new_id),], color=col_vector, cluster_cols = F,clus
 dev.off()
 
 png('cCRE_coe.human.heatmap.D.qda.meanvec.png', width=1200, height=1800)
-plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.995)
+plot_lim_PD = quantile(as.numeric(as.matrix(dss)),0.99)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
@@ -252,11 +255,19 @@ dev.off()
 
 unique(kmeans_meta_dynamicTC[kmeans_meta$order])
 
-dss_out = cbind(d[,c(1:4)], new_id, new_id_meta, ds)
+new_id_meta_uniq = unique(new_id_meta[order(new_id)])
+new_id_meta_rename = rep(-1, length(new_id_meta))
+for (i in 1:length(new_id_meta_uniq)){
+	print(c(new_id_meta_uniq[i], sum(new_id_meta==new_id_meta_uniq[i])))
+	### rename based on heatmap order
+	new_id_meta_rename[new_id_meta==new_id_meta_uniq[i]] = i
+}
+
+dss_out = cbind(d[,c(1:4)], new_id, new_id_meta_rename, ds)
 colnames(dss_out)[5:6] = c('clusterID', 'meta_clusterID')
 
 write.table(dss_out, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.txt', quote=F, row.names=F, col.names=T, sep='\t')
-write.table(cbind(table(kmeans_meta_dynamicTC[kmeans_meta$order]))[unique(kmeans_meta_dynamicTC[kmeans_meta$order]),], 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.metaCluster_Heatmap_order.txt', quote=F, row.names=T, col.names=T, sep='\t')
+#write.table(cbind(table(kmeans_meta_dynamicTC[kmeans_meta$order]))[unique(kmeans_meta_dynamicTC[kmeans_meta$order]),], 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.metaCluster_Heatmap_order.txt', quote=F, row.names=T, col.names=T, sep='\t')
 
 
 #Great analysis:

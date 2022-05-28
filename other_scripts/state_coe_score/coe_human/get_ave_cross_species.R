@@ -70,16 +70,17 @@ dev.off()
 
 pdf(paste('statep_rna_coe_heatmap.HM.PDsum.all.ccre.withcorfilter.SUM.pdf', sep=''), width=1)
 rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
-breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
+plot_lim_PD_sum = max(abs(sig0_ave[rank,1]/max(sig0_ave[rank,1])*max(sig0_ave[rank,2])+sig0_ave[rank,2]))
+breaksList = seq(-plot_lim_PD_sum, plot_lim_PD_sum, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
-pheatmap(cbind(sig0_ave[rank,1]+sig0_ave[rank,2]), color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+pheatmap(cbind(sig0_ave[rank,1]/max(sig0_ave[rank,1])*max(sig0_ave[rank,2])+sig0_ave[rank,2]), color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
 dev.off()
 
 sig0_ave[1,] = 0
 write.table(sig0_ave, 'statep_rna_coe_heatmap.HM.all.ccre.withcorfilter.AVE.txt', quote=F, col.names=T, row.names=T, sep='\t')
 
-output = cbind(sig0_ave[,1]+sig0_ave[,2])
+output = cbind(sig0_ave[,1]/max(sig0_ave[rank,1])*max(sig0_ave[rank,2])+sig0_ave[,2])
 output[1,1] = 0
 rownames(output) = 0:(dim(sig0_ave)[1]-1)
 write.table(output, 'statep_rna_coe_heatmap.HM.all.ccre.withcorfilter.SUM.txt', quote=F, col.names=T, row.names=T, sep='\t')
