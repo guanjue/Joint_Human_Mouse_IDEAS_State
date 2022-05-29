@@ -75,7 +75,7 @@ sp_list = c('AVE', 'B', 'B', 'CD34', 'CD34', 'CLP', 'CLP', 'CMP', 'CMP', 'EOS', 
 no_used_ct = c('HUDEP1','HUDEP2','CD34')
 
 leave_out_ct=args[1]
-leave_out_ct='NA'
+#leave_out_ct='NA'
 smallnum = 1e-1
 smallnum_sp =1
 cor_thresh = 0.2
