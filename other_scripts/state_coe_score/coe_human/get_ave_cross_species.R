@@ -94,4 +94,28 @@ plot(as.numeric(as.matrix(sig0)), as.numeric(as.matrix(sig0_mouse)), xlim=c(plot
 abline(0,1, col='red')
 dev.off()
 
+### get coe difference
+coe_SUM = output
+coe_SUM_dist_mat = c()
+
+for (i in 1:length(coe_SUM)){
+	coe_SUM_dist_row = c()
+for (j in 1:length(coe_SUM)){
+	coe_SUM_dist_row = c(coe_SUM_dist_row, coe_SUM[i] - coe_SUM[j])
+}
+coe_SUM_dist_mat = rbind(coe_SUM_dist_mat, coe_SUM_dist_row)
+}
+colnames(coe_SUM_dist_mat) = 0:24
+rownames(coe_SUM_dist_mat) = 0:24
+
+pdf(paste('statep_rna_coe_heatmap.HM.PDsum.all.ccre.withcorfilter.SUM.difference.pdf', sep=''))
+rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
+plot_lim_PD_sum = max(abs(coe_SUM_dist_mat))
+breaksList = seq(-plot_lim_PD_sum, plot_lim_PD_sum, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+col_breaks = c(seq(0, 2000,length=33))
+pheatmap(coe_SUM_dist_mat[rank,rank], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+dev.off()
+
+
 
