@@ -190,7 +190,8 @@ do
 done
 
 ### get Beta coefficients for Human by taking ave beta cross all leave-one-out runs
-Rscript $state_coe_score_Script_folder'/coe_human/get_ave.R'
+Rscript $state_coe_score_Script_folder'/coe_human/get_ave.R' \
+'coe_score_no' 'statep_rna_coe_heatmap.human.all.ccre.withcorfilter.txt' 'statep_rna_coe_heatmap.human.all.ccre.withcorfilter.AVE' $common_ct
 ############################################################################################################
 
 

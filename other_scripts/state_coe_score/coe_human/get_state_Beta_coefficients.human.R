@@ -1,5 +1,4 @@
 #R
-args = commandArgs(trailingOnly=TRUE)
 library(data.table)
 library(LSD)
 library(pheatmap)
@@ -70,10 +69,30 @@ get_gene_by_celltype_RNA_TPM_mat_repAVE = function(common_ct, rna_list, ds_qt){
 
 ##########################################################################################
 ### set parameters
-setwd('/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/')
+args = commandArgs(trailingOnly=TRUE)
+leave_out_ct=args[1]
+Beta_coe_mat_output_filename = args[2]
+RNA_tpm_file = args[3]
+Proximal_state_coverage_file_start = args[4]
+Distal_state_coverage_file_start = args[5]
+cCRE_state_coverage_file_start = args[6]
+cCRE_in_genes_idlist = args[7]
+working_dir = args[8]
+rna_list_sample_num = as.numeric(args[9])
+sp_list_sample_num = as.numeric(args[10])
+no_used_ct_num = as.numeric(args[11])
+state_n = as.numeric(args[12])
+### read lists
+rna_list = args[13:(12+rna_list_sample_num)]
+sp_list = args[(13+rna_list_sample_num):(12+rna_list_sample_num+sp_list_sample_num)]
+no_used_ct = args[(13+rna_list_sample_num+sp_list_sample_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num)]
+state_rank = args[(13+rna_list_sample_num+sp_list_sample_num+no_used_ct_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num+state_n)]
+
+working_dir = '/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/'
 rna_list = c('LSK', 'LSK', 'ERY', 'ERY', 'CD4', 'CD4', 'CD8', 'CD8', 'B', 'B', 'CMP', 'CMP', 'MONp', 'MONp', 'NEU', 'NEU', 'MONc', 'MONc', 'GMP', 'GMP', 'CFUE', 'NK', 'NK', 'MK', 'MK', 'CLP', 'MPP', 'MPP', 'EOS', 'EOS', 'MEP', 'MEP', 'MK', 'MK', 'CLP', 'ERY', 'ERY', 'ERY', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'CD34', 'CD34')
 sp_list = c('AVE', 'B', 'B', 'CD34', 'CD34', 'CLP', 'CLP', 'CMP', 'CMP', 'EOS', 'EOS', 'ERY', 'ERY', 'GMP', 'GMP', 'HSC', 'HSC', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'K562', 'K562', 'LMPP', 'LMPP', 'MEP', 'MEP', 'MK', 'MK', 'MONc', 'MONc', 'MONp', 'MONp', 'MPP', 'MPP', 'NEU', 'NEU', 'NK', 'NK', 'CD4', 'CD4', 'CD8', 'CD8')
 no_used_ct = c('HUDEP1','HUDEP2','CD34')
+Beta_coe_mat_output_filename = 'statep_rna_coe_heatmap.human.all.ccre.withcorfilter.txt'
 
 leave_out_ct=args[1]
 #leave_out_ct='NA'
@@ -83,7 +102,6 @@ cor_thresh = 0.2
 pcv_var_used = 0.95
 state_n = 25
 plot_lim_all = c(-2.5,5)
-set.seed(2019)
 iter_num = 2
 
 RNA_tpm_file = 'HumanVISION_RNAseq_hg38_genes_tpm.idsort.protein_coding.txt'
@@ -94,6 +112,10 @@ cCRE_in_genes_idlist = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbu
 
 state_rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
 
+
+
+set.seed(2019)
+setwd(working_dir)
 ##########################################################################################
 ### get common cell-type sample 
 ##########################################################################################
@@ -409,7 +431,7 @@ eRP_mat_human = cbind(Bpca_all[1:(state_n-1)],Bpca_all[(state_n):((state_n-1)*2)
 eRP_mat_human = rbind(c(0,0), eRP_mat_human)
 colnames(eRP_mat_human) = c('P','D')
 rownames(eRP_mat_human) = 0:(state_n-1)
-write.table(eRP_mat_human, paste(output_folder, '/statep_rna_coe_heatmap.human.all.ccre.withcorfilter.txt', sep=''), quote=F, col.names=T, row.names=T, sep='\t')
+write.table(eRP_mat_human, paste0(output_folder, '/', Beta_coe_mat_output_filename), quote=F, col.names=T, row.names=T, sep='\t')
 ### Write final state coverage matrix for human 
 write.table(sp_all_PD_corfilter_log, paste(output_folder, '/sp_all_PD_corfilter_log.human.txt', sep=''), quote=F, col.names=F, row.names=F, sep='\t')
 ### Write normalized log scale RNA-seq TPM mat
