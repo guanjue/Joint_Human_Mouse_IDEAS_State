@@ -25,6 +25,7 @@ quantile_norm = function(x){
 get_cCRE_by_celltype_esRP_mat = function(cCRE_state_coverage_file_start, state_n, eRP_mat_human, smallnum_sp){
 	ss00 = read.table(paste0(cCRE_state_coverage_file_start, '0.mat.txt'), header=F)
 	sp_sig_pred_ct = matrix(0, nrow=dim(ss00)[1], ncol=dim(ss00)[2])
+	print('get_cCRE_by_celltype_esRP_mat:')
 	for (i in c(0:(state_n-1))){
 		print(i)
 		### read state i coverage at cCREs
@@ -110,6 +111,7 @@ dir.create(output_folder)
 ##########################################################################################
 ### get RNA tpm
 ##########################################################################################
+print('RNA-TPM')
 d = read.table(RNA_tpm_file, header=F)
 ### rm info columns
 ds = d[,-c(1:6)]
@@ -137,6 +139,7 @@ ds_qt_all_log = log(ds_qt_all+smallnum)
 ### get state coverage
 ##########################################################################################
 ### Proximal state coverage
+print('Proximal state coverage')
 sp_all = c()
 for (i in c(0:(state_n-1))){
 	### read state i coverage at Proximal
@@ -160,6 +163,7 @@ for (i in c(0:(state_n-1))){
 	sp_all = cbind(sp_all, sp_i)
 }
 ### Distal state coverage
+print('Distal state coverage')
 sp_all_dist = c()
 for (i in c(0:(state_n-1))){
 	### read state i coverage at Distal
@@ -215,6 +219,7 @@ pheatmap(cor_mat_for_corheatmap, color=my_colorbar, breaks = breaksList, cluster
 dev.off()
 
 ### PCA dimension reducation (without using state0 coverage at P & D)
+print('PCA dimension reducation (without using state0 coverage at P & D)')
 pca_all = prcomp(sp_all_PD_log[,-c(1,(state_n+1))], center = F,scale. = F)
 ### get PCA rotation matrix
 pca0_rotation = pca_all$rotation 
@@ -233,12 +238,14 @@ for (varexp_tmp in exp_var){
 }
 
 ### PCA linear regression Beta coefficients for PCs
+print('PCA linear regression Beta coefficients for PCs')
 lm_all = lm(ds_qt_all_log~pca_all$x[, c(1:pcn)])
 ### get Beta coefficients for states
 Bpca_all = pca_all$rotation[,c(1:pcn)] %*% lm_all$coefficients[-1]
 alpha = lm_all$coefficients[1]
 
 ### get the Beta coefficients mat
+print('get the Beta coefficients mat without Correlation Filtering')
 eRP_mat_human = cbind(Bpca_all[1:(state_n-1)], Bpca_all[(state_n):((state_n-1)*2)])
 ### set State0's coefficients at Proximal & Distal as 0s
 eRP_mat_human = rbind(c(0,0), eRP_mat_human)
@@ -253,6 +260,7 @@ write.table(eRP_mat_human, paste(output_folder, '/statep_rna_coe_heatmap.human.a
 ### filter cCREs by correlation between gene-RNA-TPM-vector and cCRE-esRP-vector (iter_num Rounds)
 ##########################################################################################
 for (iter_i in 1:iter_num){
+	print(paste0('Correlation Filter iter: ', iter_i))
 	### get esRP mat for all cCREs (cCRE-by-celltypesample mat)
 	sp_sig_pred_ct = get_cCRE_by_celltype_esRP_mat(cCRE_state_coverage_file_start, state_n, eRP_mat_human, smallnum_sp)
 
@@ -266,6 +274,7 @@ for (iter_i in 1:iter_num){
 
 	####################################
 	### read gene with used id (gene-by-5 mat: 5th column include the cCREs with Distal window)
+	print('read gene with used id (gene-by-5 mat: 5th column include the cCREs with Distal window)')
 	gene_withccre_id = read.table(cCRE_in_genes_idlist, header=F)[,5]
 	gene_withccre_id_str = as.character(gene_withccre_id)
 
@@ -273,7 +282,6 @@ for (iter_i in 1:iter_num){
 	cor_vec_all_select = matrix('.', nrow=length(gene_withccre_id), ncol=1)
 	### initial correlation vector for plotting correlation hist
 	cor_vec = c()
-
 	for (i in 1:length(gene_withccre_id)){
 		if (i%%1000==0){
 			print(i)
@@ -314,6 +322,7 @@ for (iter_i in 1:iter_num){
 
 	### regenerate state coverage at Distal regions after correltion filtering
 	### read cCRE-by-celltype state coverage mat
+	print('read cCRE-by-celltype state coverage mat')
 	ss = read.table(paste0(cCRE_state_coverage_file_start, '0.mat.txt'), header=F)
 	ss_all = (ss[,-c(1:4)])
 	for (i in c(1:(state_n-1))){
@@ -326,6 +335,7 @@ for (iter_i in 1:iter_num){
 	}
 
 	### initial gene-by-celltype*state mat
+	print('initial gene-by-celltype*state mat')
 	sp_corfiltered = matrix(0, nrow=dim(cor_vec_all_select)[1], ncol=dim(ss_all)[2])
 	for (i in 1:dim(cor_vec_all_select)[1]){
 		if (i%%100==0){
@@ -346,6 +356,7 @@ for (iter_i in 1:iter_num){
 	sp_corfiltered_all = matrix(0, nrow=dim(sp_corfiltered)[1]*length(common_ct), ncol=state_n)
 
 	### Convert gene-by-celltype*state matrix TO gene*celltype-by-state matrix
+	print('Convert gene-by-celltype*state matrix TO gene*celltype-by-state matrix')
 	k=0
 	for (ct in common_ct){
 		print(ct)
@@ -379,8 +390,7 @@ for (iter_i in 1:iter_num){
 	Bpca_all = pca0_rotation[,c(1:pcn)] %*% lm_all$coefficients[-1]
 
 	pred = lm_all$fitted.value
-	print(paste0('R2 after Round ',iter_i,' correlation filtering:'))
-	R2(ds_qt_all_log, pred)
+	print(paste0('R2 after Round ',iter_i,' correlation filtering: ', R2(ds_qt_all_log, pred)))
 
 	### get the Beta coefficients mat after Round 1 correlation filtering
 	eRP_mat_human = cbind(Bpca_all[1:(state_n-1)],Bpca_all[(state_n):((state_n-1)*2)])
@@ -392,6 +402,7 @@ for (iter_i in 1:iter_num){
 	##########################################################################################
 }
 
+print('Write Final outputs')
 ### Write final Beta coefficients matrix
 eRP_mat_human = cbind(Bpca_all[1:(state_n-1)],Bpca_all[(state_n):((state_n-1)*2)])
 ### set State0's coefficients at Proximal & Distal as 0s
@@ -406,6 +417,7 @@ write.table(ds_qt_all_log, paste(output_folder, '/RNA_TPM_qt_logscale.human.txt'
 
 
 ### Generate figures
+print('Generate figures')
 plot_lim_P = max(abs(eRP_mat_human[,1]))
 plot_lim_D = max(abs(eRP_mat_human[,2]))
 plot_lim_PD = max(abs(eRP_mat_human))
