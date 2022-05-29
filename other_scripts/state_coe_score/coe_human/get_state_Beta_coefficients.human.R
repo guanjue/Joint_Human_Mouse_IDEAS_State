@@ -248,147 +248,148 @@ write.table(eRP_mat_human, paste(output_folder, '/statep_rna_coe_heatmap.human.a
 ##########################################################################################
 
 
+
+##########################################################################################
+### filter cCREs by correlation between gene-RNA-TPM-vector and cCRE-esRP-vector (iter_num Rounds)
+##########################################################################################
 for (iter_i in 1:iter_num){
-##########################################################################################
-### filter cCREs by correlation between gene-RNA-TPM-vector and cCRE-esRP-vector (Round 1)
-##########################################################################################
-### get esRP mat for all cCREs (cCRE-by-celltypesample mat)
-sp_sig_pred_ct = get_cCRE_by_celltype_esRP_mat(cCRE_state_coverage_file_start, state_n, eRP_mat_human, smallnum_sp)
+	### get esRP mat for all cCREs (cCRE-by-celltypesample mat)
+	sp_sig_pred_ct = get_cCRE_by_celltype_esRP_mat(cCRE_state_coverage_file_start, state_n, eRP_mat_human, smallnum_sp)
 
-### average the esRPs of replicates of each celltype
-sp_sig_pred_ct_common_ct = get_cCRE_by_celltype_esRP_mat_repAVE(common_ct, sp_list, sp_sig_pred_ct)
+	### average the esRPs of replicates of each celltype
+	sp_sig_pred_ct_common_ct = get_cCRE_by_celltype_esRP_mat_repAVE(common_ct, sp_list, sp_sig_pred_ct)
 
-### get RNA-seq TPM QTnorm gene-by-celltype mat
-ds_qt_all_mat = get_gene_by_celltype_RNA_TPM_mat_repAVE(common_ct, rna_list, ds_qt)
-### log scale QTnorm RNA-seq TPM mat gene-by-celltype-RNA-TPM-QT vector
-ds_qt_all_mat_log = log(ds_qt_all_mat+smallnum)
+	### get RNA-seq TPM QTnorm gene-by-celltype mat
+	ds_qt_all_mat = get_gene_by_celltype_RNA_TPM_mat_repAVE(common_ct, rna_list, ds_qt)
+	### log scale QTnorm RNA-seq TPM mat gene-by-celltype-RNA-TPM-QT vector
+	ds_qt_all_mat_log = log(ds_qt_all_mat+smallnum)
 
-####################################
-### read gene with used id (gene-by-5 mat: 5th column include the cCREs with Distal window)
-gene_withccre_id = read.table(cCRE_in_genes_idlist, header=F)[,5]
-gene_withccre_id_str = as.character(gene_withccre_id)
+	####################################
+	### read gene with used id (gene-by-5 mat: 5th column include the cCREs with Distal window)
+	gene_withccre_id = read.table(cCRE_in_genes_idlist, header=F)[,5]
+	gene_withccre_id_str = as.character(gene_withccre_id)
 
-### initial new selected cCRE-ids for all genes
-cor_vec_all_select = matrix('.', nrow=length(gene_withccre_id), ncol=1)
-### initial correlation vector for plotting correlation hist
-cor_vec = c()
+	### initial new selected cCRE-ids for all genes
+	cor_vec_all_select = matrix('.', nrow=length(gene_withccre_id), ncol=1)
+	### initial correlation vector for plotting correlation hist
+	cor_vec = c()
 
-for (i in 1:length(gene_withccre_id)){
-	if (i%%1000==0){
+	for (i in 1:length(gene_withccre_id)){
+		if (i%%1000==0){
+			print(i)
+		}
+		### read RNA-TPM vector for gene-i
+		ds_qt_all_mat_log_i = ds_qt_all_mat_log[i,]
+		### read used cCRE-ids for gene-i
+		state_id = as.numeric(unlist(strsplit(gene_withccre_id_str[i], ',')))
+		### read esRPs vectors for all cCREs selected by gene-i
+		sp_sig_pred_ct_common_ct_i = sp_sig_pred_ct_common_ct[state_id,]
+		### calculate correlation between cCRE's esRP vector and RNA-seq TPM vector
+		if (length(state_id)>1){
+			cor_vec_i = apply(sp_sig_pred_ct_common_ct_i, 1, function(x) cor(x, ds_qt_all_mat_log_i))
+		} else if (length(state_id)==1){
+			cor_vec_i = cor(sp_sig_pred_ct_common_ct_i, ds_qt_all_mat_log_i)
+		}
+		### filter cCRE for gene-i by correlation
+		cor_vec_i_select = state_id[(abs(cor_vec_i)>=cor_thresh) & (!is.na(cor_vec_i))]
+		### update selected cCRE-ids for gene-i
+		cor_vec_i_select_str = paste(cor_vec_i_select, collapse=',')
+		cor_vec_all_select[i,1] = cor_vec_i_select_str
+		### get all correlation for plotting cor dist
+		cor_vec = c(cor_vec, cor_vec_i)
+	}
+
+	### plot correlation hist after Round cCRE selection
+	cor_vec = as.matrix(cor_vec)
+	cor_vec = cor_vec[!is.na(cor_vec)]
+	pdf(paste0(output_folder, '/ccre_cor_hist.',iter_i,'.pdf'))
+	hist(cor_vec, breaks=100, xlim=c(-1,1))
+	zcor = (cor_vec-mean(cor_vec))/sd(cor_vec)
+	zcorp = pnorm(zcor, mean=0, sd=1, lower.tail=F)
+	lim1 = min(cor_vec[zcorp<0.025])
+	abline(v=0, lwd=2)
+	abline(v=mean(cor_vec), lwd=2, lty=2, col='red')
+	box()
+	dev.off()
+
+	### regenerate state coverage at Distal regions after correltion filtering
+	### read cCRE-by-celltype state coverage mat
+	ss = read.table(paste0(cCRE_state_coverage_file_start, '0.mat.txt'), header=F)
+	ss_all = (ss[,-c(1:4)])
+	for (i in c(1:(state_n-1))){
 		print(i)
+		### read cCRE-by-celltype state-i coverage mat
+		ss = read.table(paste0(cCRE_state_coverage_file_start, i, '.mat.txt'), header=F)
+		sp = (ss[,-c(1:4)])
+		### cbind all Proximal-gene-by-celltypes-statei-coverage matrices
+		ss_all = cbind(ss_all, sp)
 	}
-	### read RNA-TPM vector for gene-i
-	ds_qt_all_mat_log_i = ds_qt_all_mat_log[i,]
-	### read used cCRE-ids for gene-i
-	state_id = as.numeric(unlist(strsplit(gene_withccre_id_str[i], ',')))
-	### read esRPs vectors for all cCREs selected by gene-i
-	sp_sig_pred_ct_common_ct_i = sp_sig_pred_ct_common_ct[state_id,]
-	### calculate correlation between cCRE's esRP vector and RNA-seq TPM vector
-	if (length(state_id)>1){
-		cor_vec_i = apply(sp_sig_pred_ct_common_ct_i, 1, function(x) cor(x, ds_qt_all_mat_log_i))
-	} else if (length(state_id)==1){
-		cor_vec_i = cor(sp_sig_pred_ct_common_ct_i, ds_qt_all_mat_log_i)
+
+	### initial gene-by-celltype*state mat
+	sp_corfiltered = matrix(0, nrow=dim(cor_vec_all_select)[1], ncol=dim(ss_all)[2])
+	for (i in 1:dim(cor_vec_all_select)[1]){
+		if (i%%100==0){
+			print(i)
+		}
+		### get selected cCRE-id for gene-i
+		used_row_i = as.numeric(unlist(strsplit(cor_vec_all_select[i,1], ',')))
+		### take the col sum of state-coverage (celltype*state) based on all selected cCREs for gene-i
+		if (length(used_row_i)>0){
+			sp_corfiltered[i,] = colSums(ss_all[used_row_i,])
+		}else{
+			sp_corfiltered[i,] = rep(0, dim(sp_corfiltered)[2])
+		}
 	}
-	### filter cCRE for gene-i by correlation
-	cor_vec_i_select = state_id[(abs(cor_vec_i)>=cor_thresh) & (!is.na(cor_vec_i))]
-	### update selected cCRE-ids for gene-i
-	cor_vec_i_select_str = paste(cor_vec_i_select, collapse=',')
-	cor_vec_all_select[i,1] = cor_vec_i_select_str
-	### get all correlation for plotting cor dist
-	cor_vec = c(cor_vec, cor_vec_i)
-}
 
-### plot correlation hist after Round cCRE selection
-cor_vec = as.matrix(cor_vec)
-cor_vec = cor_vec[!is.na(cor_vec)]
-pdf(paste0(output_folder, '/ccre_cor_hist.',iter_i,'.pdf'))
-hist(cor_vec, breaks=100, xlim=c(-1,1))
-zcor = (cor_vec-mean(cor_vec))/sd(cor_vec)
-zcorp = pnorm(zcor, mean=0, sd=1, lower.tail=F)
-lim1 = min(cor_vec[zcorp<0.025])
-abline(v=0, lwd=2)
-abline(v=mean(cor_vec), lwd=2, lty=2, col='red')
-box()
-dev.off()
+	### Pool all celltypes information one mat (convert gene-by-celltype*state matrix TO gene*celltype-by-state matrix)
+	### Initial gene*celltype-by-state matrix
+	sp_corfiltered_all = matrix(0, nrow=dim(sp_corfiltered)[1]*length(common_ct), ncol=state_n)
 
-### regenerate state coverage at Distal regions after correltion filtering
-### read cCRE-by-celltype state coverage mat
-ss = read.table(paste0(cCRE_state_coverage_file_start, '0.mat.txt'), header=F)
-ss_all = (ss[,-c(1:4)])
-for (i in c(1:(state_n-1))){
-	print(i)
-	### read cCRE-by-celltype state-i coverage mat
-	ss = read.table(paste0(cCRE_state_coverage_file_start, i, '.mat.txt'), header=F)
-	sp = (ss[,-c(1:4)])
-	### cbind all Proximal-gene-by-celltypes-statei-coverage matrices
-	ss_all = cbind(ss_all, sp)
-}
-
-### initial gene-by-celltype*state mat
-sp_corfiltered = matrix(0, nrow=dim(cor_vec_all_select)[1], ncol=dim(ss_all)[2])
-for (i in 1:dim(cor_vec_all_select)[1]){
-	if (i%%100==0){
-		print(i)
+	### Convert gene-by-celltype*state matrix TO gene*celltype-by-state matrix
+	k=0
+	for (ct in common_ct){
+		print(ct)
+		ct_pos_sp = which(sp_list==ct)
+		### Initial gene-by-state matrix for celltype-ct
+		sp_mat_tmp = matrix(0, nrow=dim(sp_corfiltered)[1], ncol=state_n)
+		### average the state coverage for all replicates
+		for (i in ct_pos_sp){
+			sp_mat_tmp = sp_mat_tmp+sp_corfiltered[,seq(1,dim(sp_corfiltered)[2], by=dim(sp_corfiltered)[2]/state_n)+i-1]
+		}
+		sp_mat_tmp = sp_mat_tmp/length(ct_pos_sp)
+		### update the entries in the state-coverage mat for celltype-ct (gene*celltype-by-state matrix)
+		sp_corfiltered_all[seq(1,dim(sp_corfiltered)[1])+(k)*dim(sp_corfiltered)[1],] = sp_mat_tmp
+		k = k+1
 	}
-	### get selected cCRE-id for gene-i
-	used_row_i = as.numeric(unlist(strsplit(cor_vec_all_select[i,1], ',')))
-	### take the col sum of state-coverage (celltype*state) based on all selected cCREs for gene-i
-	if (length(used_row_i)>0){
-		sp_corfiltered[i,] = colSums(ss_all[used_row_i,])
-	}else{
-		sp_corfiltered[i,] = rep(0, dim(sp_corfiltered)[2])
-	}
-}
 
-### Pool all celltypes information one mat (convert gene-by-celltype*state matrix TO gene*celltype-by-state matrix)
-### Initial gene*celltype-by-state matrix
-sp_corfiltered_all = matrix(0, nrow=dim(sp_corfiltered)[1]*length(common_ct), ncol=state_n)
+	### add colnames and take log scale for state-coverage-Distal-after-cor-filter
+	colnames(sp_corfiltered_all) = c(0:(state_n-1))
+	sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
 
-### Convert gene-by-celltype*state matrix TO gene*celltype-by-state matrix
-k=0
-for (ct in common_ct){
-	print(ct)
-	ct_pos_sp = which(sp_list==ct)
-	### Initial gene-by-state matrix for celltype-ct
-	sp_mat_tmp = matrix(0, nrow=dim(sp_corfiltered)[1], ncol=state_n)
-	### average the state coverage for all replicates
-	for (i in ct_pos_sp){
-		sp_mat_tmp = sp_mat_tmp+sp_corfiltered[,seq(1,dim(sp_corfiltered)[2], by=dim(sp_corfiltered)[2]/state_n)+i-1]
-	}
-	sp_mat_tmp = sp_mat_tmp/length(ct_pos_sp)
-	### update the entries in the state-coverage mat for celltype-ct (gene*celltype-by-state matrix)
-	sp_corfiltered_all[seq(1,dim(sp_corfiltered)[1])+(k)*dim(sp_corfiltered)[1],] = sp_mat_tmp
-	k = k+1
-}
-
-### add colnames and take log scale for state-coverage-Distal-after-cor-filter
-colnames(sp_corfiltered_all) = c(0:(state_n-1))
-sp_corfiltered_all_D_log = log((sp_corfiltered_all+smallnum_sp))
-
-### cbind state coverage at P & D-after-cor-filter together
-sp_all_PD_corfilter_log = cbind(sp_all_log, (sp_corfiltered_all_D_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
+	### cbind state coverage at P & D-after-cor-filter together
+	sp_all_PD_corfilter_log = cbind(sp_all_log, (sp_corfiltered_all_D_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
 
 
-### dimension reducation rm 0 state info -c(1,state_n)
-### PCA rotation
-sp_all_PD_corfilter_log_new = sp_all_PD_corfilter_log[,-c(1,state_n)] %*% pca0_rotation
-### PCA linear regression Beta coefficients for PCs
-lm_all = lm(ds_qt_all_log~sp_all_PD_corfilter_log_new[,c(1:pcn)])
-### get Beta coefficients for states (After Round 1 correlation filtering)
-Bpca_all = pca0_rotation[,c(1:pcn)] %*% lm_all$coefficients[-1]
+	### dimension reducation rm 0 state info -c(1,state_n)
+	### PCA rotation
+	sp_all_PD_corfilter_log_new = sp_all_PD_corfilter_log[,-c(1,state_n)] %*% pca0_rotation
+	### PCA linear regression Beta coefficients for PCs
+	lm_all = lm(ds_qt_all_log~sp_all_PD_corfilter_log_new[,c(1:pcn)])
+	### get Beta coefficients for states (After Round 1 correlation filtering)
+	Bpca_all = pca0_rotation[,c(1:pcn)] %*% lm_all$coefficients[-1]
 
-pred = lm_all$fitted.value
-print(paste0('R2 after Round ',iter_i,' correlation filtering:'))
-R2(ds_qt_all_log, pred)
+	pred = lm_all$fitted.value
+	print(paste0('R2 after Round ',iter_i,' correlation filtering:'))
+	R2(ds_qt_all_log, pred)
 
-### get the Beta coefficients mat after Round 1 correlation filtering
-eRP_mat_human = cbind(Bpca_all[1:(state_n-1)],Bpca_all[(state_n):((state_n-1)*2)])
-### set State0's coefficients at Proximal & Distal as 0s
-eRP_mat_human = rbind(c(0,0), eRP_mat_human)
-colnames(eRP_mat_human) = c('P','D')
-rownames(eRP_mat_human) = 0:(state_n-1)
-write.table(eRP_mat_human, paste0(output_folder, '/statep_rna_coe_heatmap.human.all.ccre.withcorfilter.r', iter_i,'.txt'), quote=F, col.names=T, row.names=T, sep='\t')
-##########################################################################################
+	### get the Beta coefficients mat after Round 1 correlation filtering
+	eRP_mat_human = cbind(Bpca_all[1:(state_n-1)],Bpca_all[(state_n):((state_n-1)*2)])
+	### set State0's coefficients at Proximal & Distal as 0s
+	eRP_mat_human = rbind(c(0,0), eRP_mat_human)
+	colnames(eRP_mat_human) = c('P','D')
+	rownames(eRP_mat_human) = 0:(state_n-1)
+	write.table(eRP_mat_human, paste0(output_folder, '/statep_rna_coe_heatmap.human.all.ccre.withcorfilter.r', iter_i,'.txt'), quote=F, col.names=T, row.names=T, sep='\t')
+	##########################################################################################
 }
 
 ### Write final Beta coefficients matrix
