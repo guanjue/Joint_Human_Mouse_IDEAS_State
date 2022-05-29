@@ -88,11 +88,11 @@ sp_list = args[(13+rna_list_sample_num):(12+rna_list_sample_num+sp_list_sample_n
 no_used_ct = args[(13+rna_list_sample_num+sp_list_sample_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num)]
 state_rank = args[(13+rna_list_sample_num+sp_list_sample_num+no_used_ct_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num+state_n)]
 
-working_dir = '/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/'
-rna_list = c('LSK', 'LSK', 'ERY', 'ERY', 'CD4', 'CD4', 'CD8', 'CD8', 'B', 'B', 'CMP', 'CMP', 'MONp', 'MONp', 'NEU', 'NEU', 'MONc', 'MONc', 'GMP', 'GMP', 'CFUE', 'NK', 'NK', 'MK', 'MK', 'CLP', 'MPP', 'MPP', 'EOS', 'EOS', 'MEP', 'MEP', 'MK', 'MK', 'CLP', 'ERY', 'ERY', 'ERY', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'CD34', 'CD34')
-sp_list = c('AVE', 'B', 'B', 'CD34', 'CD34', 'CLP', 'CLP', 'CMP', 'CMP', 'EOS', 'EOS', 'ERY', 'ERY', 'GMP', 'GMP', 'HSC', 'HSC', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'K562', 'K562', 'LMPP', 'LMPP', 'MEP', 'MEP', 'MK', 'MK', 'MONc', 'MONc', 'MONp', 'MONp', 'MPP', 'MPP', 'NEU', 'NEU', 'NK', 'NK', 'CD4', 'CD4', 'CD8', 'CD8')
-no_used_ct = c('HUDEP1','HUDEP2','CD34')
-Beta_coe_mat_output_filename = 'statep_rna_coe_heatmap.human.all.ccre.withcorfilter.txt'
+#working_dir = '/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/'
+#rna_list = c('LSK', 'LSK', 'ERY', 'ERY', 'CD4', 'CD4', 'CD8', 'CD8', 'B', 'B', 'CMP', 'CMP', 'MONp', 'MONp', 'NEU', 'NEU', 'MONc', 'MONc', 'GMP', 'GMP', 'CFUE', 'NK', 'NK', 'MK', 'MK', 'CLP', 'MPP', 'MPP', 'EOS', 'EOS', 'MEP', 'MEP', 'MK', 'MK', 'CLP', 'ERY', 'ERY', 'ERY', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'CD34', 'CD34')
+#sp_list = c('AVE', 'B', 'B', 'CD34', 'CD34', 'CLP', 'CLP', 'CMP', 'CMP', 'EOS', 'EOS', 'ERY', 'ERY', 'GMP', 'GMP', 'HSC', 'HSC', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'K562', 'K562', 'LMPP', 'LMPP', 'MEP', 'MEP', 'MK', 'MK', 'MONc', 'MONc', 'MONp', 'MONp', 'MPP', 'MPP', 'NEU', 'NEU', 'NK', 'NK', 'CD4', 'CD4', 'CD8', 'CD8')
+#no_used_ct = c('HUDEP1','HUDEP2','CD34')
+#Beta_coe_mat_output_filename = 'statep_rna_coe_heatmap.human.all.ccre.withcorfilter.txt'
 
 leave_out_ct=args[1]
 #leave_out_ct='NA'
@@ -100,17 +100,17 @@ smallnum = 1e-1
 smallnum_sp =1
 cor_thresh = 0.2
 pcv_var_used = 0.95
-state_n = 25
+#state_n = 25
 plot_lim_all = c(-2.5,5)
 iter_num = 2
 
-RNA_tpm_file = 'HumanVISION_RNAseq_hg38_genes_tpm.idsort.protein_coding.txt'
-Proximal_state_coverage_file_start = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.Nkbupdownexp.S'
-Distal_state_coverage_file_start = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.S'
-cCRE_state_coverage_file_start = 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S'
-cCRE_in_genes_idlist = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.withccreid.bed'
+#RNA_tpm_file = 'HumanVISION_RNAseq_hg38_genes_tpm.idsort.protein_coding.txt'
+#Proximal_state_coverage_file_start = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.Nkbupdownexp.S'
+#Distal_state_coverage_file_start = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.S'
+#cCRE_state_coverage_file_start = 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.S'
+#cCRE_in_genes_idlist = 'HumanVISION_RNAseq_hg38_gene.idsort.protein_coding.NHkbupdownexp.withccreid.bed'
 
-state_rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
+#state_rank = c(2,1,4,3,6,10,11,5,9,13,8,19,12,25,14,23,22,20,21,17,18,7,16,15,24)
 
 
 
