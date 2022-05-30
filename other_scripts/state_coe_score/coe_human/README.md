@@ -1,6 +1,6 @@
 ###
 ```
-# get_coe_score.05292022.JustHuman.sh: is used for Human data only
+# get_coe_score.05292022.JustHuman.sh: is used for Only Human data analysis. (From Downloading data to the final outputs)
 
 # get_coe_score.04292022.human.sh: is used for joint Human & Mouse data analysis
 
