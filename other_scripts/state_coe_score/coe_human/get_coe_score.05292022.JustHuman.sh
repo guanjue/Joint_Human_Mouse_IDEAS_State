@@ -73,12 +73,15 @@ time Rscript $state_coe_score_Script_folder'/coe_human/get_new_RNA_mat.R'
 cut -f1,2,3,4 $RNA_TPM_file | tail -n+2 | sort -k1,1 -k2,2n > RNA_gene.bed
 cat $RNA_TPM_file | head -1 > $RNA_TPM_file_start'.idsort.header.txt'
 tail -n+2 $RNA_TPM_file | sort -k4,4 > $RNA_TPM_file_start'.idsort.txt'
+### $RNA_TPM_file_start'.idsort.txt' is used for downstream analysis
+
 
 ### get gene annotations
 cut -f7,9,10 $gene_annotation > annotation1.txt
 cat annotation1.txt | awk -F ' ' -v OFS='\t' '{if ($4=="gene_type") print $1,$3,$5}' > annotation2.txt
 cat annotation2.txt | awk -F '"' -v OFS='\t' '{print $2,$4,$1}' | sort -k1,1 > annotation3.idsort.od.txt
 time Rscript $state_coe_score_Script_folder'/coe_human/get_new_gene_annotation.R'
+### annotation3.idsort.txt is used for downstream analysis
 
 ### get protein coding genes TPM mat
 paste annotation3.idsort.txt $RNA_TPM_file_start'.idsort.txt' \
