@@ -1,5 +1,5 @@
 ### Setting folders
-Working_folder='/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis'
+Working_folder='/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis_test'
 state_coe_score_Script_folder='/Users/guanjuexiang/Documents/projects/Joint_Human_House_IDEAS_State/other_scripts/state_coe_score/'
 
 ### IDEAS state file
@@ -69,7 +69,7 @@ wget https://usevision.org/data/hg38/IDEASstates/ideasJointMay2021/S3V2_IDEAS_hg
 ############################################################################################################
 ### get RNA-seq bed file & matrix
 mv $RNA_TPM_file $RNA_TPM_file_start'.old.txt'
-time Rscript $state_coe_score_Script_folder'/coe_human/get_new_RNA_mat.R'
+time Rscript $state_coe_score_Script_folder'/coe_human/get_new_RNA_mat.R' 
 cut -f1,2,3,4 $RNA_TPM_file | tail -n+2 | sort -k1,1 -k2,2n > RNA_gene.bed
 cat $RNA_TPM_file | head -1 > $RNA_TPM_file_start'.idsort.header.txt'
 tail -n+2 $RNA_TPM_file | sort -k4,4 > $RNA_TPM_file_start'.idsort.txt'
@@ -131,26 +131,26 @@ bedtools intersect -a J_IDEAS.state.bed -b $All_RNA_gene_file_start'.idsort.prot
 cut -f4 J_IDEAS.state.gene.bed > J_IDEAS.state.ingene
 
 ### get Proximal regions' states coverages matrices (25 states' gene-by-celltype matrices)
-for i in {0..$state_max}
+for i in $(seq 0 $state_max)
 do
    echo $i
-   cp $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.bed' $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i.bed
+   cp $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.bed' $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed'
    for j in {5..47}
    do
       echo $j
       cat J_IDEAS.state.ingene \
       | awk -F ' ' -v OFS='\t' -v c=$j -v s=$i '{if ($c==s) print $2,$3,$4}' > ct$j.s$i.bed
-      echo 'NO filter cCRE'
-      bedtools intersect -a $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.bed' -b ct$j.s$i.bed -c > ct$j.s$i.bed.count.bed
-      cut -f4 ct$j.s$i.bed.count.bed > ct$j.s$i.bed.count.txt
-      paste $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed' ct$j.s$i.bed.count.txt > $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed.tmp' \
+      ### 'NO filter cCRE'
+      bedtools intersect -a $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.bed' -b 'ct'$j'.s'$i'.bed' -c > 'ct'$j'.s'$i'.bed.count.bed'
+      cut -f4 'ct'$j'.s'$i'.bed.count.bed' > 'ct'$j'.s'$i'.bed.count.txt'
+      paste $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed' 'ct'$j'.s'$i'.bed.count.txt' > $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed.tmp' \
       && mv $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed.tmp' $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.S'$i'.bed'
-      rm ct$j.s$i.bed.count.txt ct$j.s$i.bed.count.bed ct$j.s$i.bed
+      rm 'ct'$j'.s'$i'.bed.count.txt' 'ct'$j'.s'$i'.bed.count.bed' 'ct'$j'.s'$i'.bed'
    done
 done
 
 ### get Distal regions' states coverages matrices (25 states' gene-by-celltype matrices)
-for i in {0..$state_max}
+for i in $(seq 0 $state_max)
 do
    echo $i
    cp $All_RNA_gene_file_start'.idsort.protein_coding.NHkbupdownexp.bed' $All_RNA_gene_file_start'.idsort.protein_coding.NHkbupdownexp.S'$i'.bed'
@@ -159,7 +159,7 @@ do
       echo $j
       cat J_IDEAS.state.inccre \
       | awk -F ' ' -v OFS='\t' -v c=$j -v s=$i '{if ($c==s) print $2,$3,$4}' > ct$j.s$i.ccre.bed
-      echo 'filter cCRE'
+      ### 'filter cCRE'
       bedtools intersect -a $All_RNA_gene_file_start'.idsort.protein_coding.NHkbupdownexp.bed' -b ct$j.s$i.ccre.bed -c > ct$j.s$i.bed.count.bed
       cut -f4 ct$j.s$i.bed.count.bed > ct$j.s$i.bed.count.txt
       paste $All_RNA_gene_file_start'.idsort.protein_coding.NHkbupdownexp.S'$i'.bed' ct$j.s$i.bed.count.txt > $All_RNA_gene_file_start'.idsort.protein_coding.NHkbupdownexp.S'$i'.bed.tmp' \
@@ -186,7 +186,7 @@ mv $All_RNA_gene_file_start'.idsort.protein_coding.NHkbupdownexp.withccreid.bed.
 ### Get State coverage matrices for cCREs
 ############################################################################################################
 ### get cCREs states coverages matrices (25 states' cCRE-by-celltype matrices)
-for i in {0..$state_max}
+for i in $(seq 0 $state_max)
 do
    echo $i
    cp $cCRE_bed_file_start'.withid.bed' $cCRE_bed_file_start'.withid.S'$i'.mat.txt'
@@ -203,6 +203,7 @@ do
       rm ct$j.s$i.bed.count.txt ct$j.s$i.bed.count.bed ct$j.s$i.bed
    done
 done
+
 ############################################################################################################
 
 
@@ -228,10 +229,10 @@ $rna_list_sample_num \
 $sp_list_sample_num \
 $no_used_ct_num \
 $state_num \
-$rna_list \
-$sp_list \
-$no_used_ct \
-$state_rank
+"${rna_list[@]}" \
+"${sp_list[@]}" \
+"${no_used_ct[@]}" \
+"${state_rank[@]}"
 done
 
 ### get Beta coefficients for Human by taking ave beta cross all leave-one-out runs
@@ -250,7 +251,8 @@ $Output_name_Beta_coefficient_mat'.AVE.txt' \
 $cCRE_bed_file_start'.withid.S' \
 $state_max \
 $cCRE_bed_file_start \
-$sp_ctrep_list
+"${sp_ctrep_list[@]}"
+
 ############################################################################################################
 
 

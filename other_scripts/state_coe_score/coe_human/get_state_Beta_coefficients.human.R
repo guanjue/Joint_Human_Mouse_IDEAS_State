@@ -86,7 +86,25 @@ state_n = as.numeric(args[12])
 rna_list = args[13:(12+rna_list_sample_num)]
 sp_list = args[(13+rna_list_sample_num):(12+rna_list_sample_num+sp_list_sample_num)]
 no_used_ct = args[(13+rna_list_sample_num+sp_list_sample_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num)]
-state_rank = args[(13+rna_list_sample_num+sp_list_sample_num+no_used_ct_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num+state_n)]
+state_rank = as.numeric(args[(13+rna_list_sample_num+sp_list_sample_num+no_used_ct_num):(12+rna_list_sample_num+sp_list_sample_num+no_used_ct_num+state_n)])
+
+
+#print(leave_out_ct)
+#print(Beta_coe_mat_output_filename)
+#print(RNA_tpm_file)
+#print(Proximal_state_coverage_file_start)
+#print(Distal_state_coverage_file_start)
+#print(cCRE_state_coverage_file_start)
+#print(cCRE_in_genes_idlist)
+#print(rna_list_sample_num)
+#print(sp_list_sample_num)
+#print(no_used_ct_num)
+#print(state_n)
+#print(rna_list)
+#print(sp_list)
+#print(no_used_ct)
+#print(state_rank)
+
 
 #working_dir = '/Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/'
 #rna_list = c('LSK', 'LSK', 'ERY', 'ERY', 'CD4', 'CD4', 'CD8', 'CD8', 'B', 'B', 'CMP', 'CMP', 'MONp', 'MONp', 'NEU', 'NEU', 'MONc', 'MONc', 'GMP', 'GMP', 'CFUE', 'NK', 'NK', 'MK', 'MK', 'CLP', 'MPP', 'MPP', 'EOS', 'EOS', 'MEP', 'MEP', 'MK', 'MK', 'CLP', 'ERY', 'ERY', 'ERY', 'HUDEP1', 'HUDEP1', 'HUDEP2', 'HUDEP2', 'CD34', 'CD34')
@@ -229,7 +247,7 @@ adj_sd_tar = sd(sp_all_log)
 ### scale Distal-gene-by-celltypes-statei-coverage matrix to Proximal-gene-by-celltypes-statei-coverage matrix by mean & sd
 sp_all_PD_log = cbind(sp_all_log, (sp_all_dist_log - mean(adj_mean_od)) / adj_sd_od * adj_sd_tar + adj_mean_tar )
 
-### correlation heatmap for state coverage (Check colinearity)
+print('correlation heatmap for state coverage (Check colinearity)')
 sp_all_PD_log_distal = sp_all_PD_log
 colnames(sp_all_PD_log_distal) = c(paste('P:', 0:(state_n-1)), paste('D:', 0:(state_n-1)))
 cor_mat_for_corheatmap = cor(sp_all_PD_log_distal)
@@ -448,7 +466,7 @@ pdf(paste(output_folder, '/statep_rna_coe_heatmap.human.all.ccre.withcorfilter.p
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
 col_breaks = c(seq(0, 2000,length=33))
-pheatmap(eRP_mat_human[state_rank,], color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+pheatmap(cbind(eRP_mat_human[state_rank,]), color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
 dev.off()
 
 pdf(paste(output_folder, '/statep_rna_coe_heatmap.human.all.P.ccre.withcorfilter.pdf', sep=''), width=3)
