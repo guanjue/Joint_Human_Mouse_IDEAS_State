@@ -237,7 +237,7 @@ done
 
 ### get Beta coefficients for Human by taking ave beta cross all leave-one-out runs
 Rscript $state_coe_score_Script_folder'/coe_human/get_ave.R' \
-'coe_score_no' $Output_name_Beta_coefficient_mat'.txt' $Output_name_Beta_coefficient_mat'.AVE' $common_ct
+'coe_score_no' $Output_name_Beta_coefficient_mat'.txt' $Output_name_Beta_coefficient_mat'.AVE' "${common_ct[@]}"
 ############################################################################################################
 
 
