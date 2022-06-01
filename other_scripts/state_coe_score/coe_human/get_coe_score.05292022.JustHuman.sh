@@ -90,12 +90,6 @@ paste annotation3.idsort.txt $RNA_TPM_file_start'.idsort.txt' \
 ### get protein coding genes bed
 cut -f1,2,3,5 $RNA_TPM_file_start'.idsort.protein_coding.txt' > $All_RNA_gene_file_start'.idsort.protein_coding.bed'
 
-### get All genes Proximal regions (+/- 1Kb) bed
-paste annotation3.idsort.txt $RNA_TPM_file_start'.idsort.txt' \
-| awk -F '\t' -v OFS='\t' '{print $5,$6,$7,$2,$3,$8}' | cut -f1,2,3,5\
-| awk -F '\t' -v OFS='\t' -v exp_win=1000 '{if (($2-exp_win>0) && ($4=="+")) print $1,$2-exp_win, $2+exp_win; if (($3-exp_win>0) && ($4=="-")) print $1,$3-exp_win, $3+exp_win; if (($2-exp_win<0) && ($4=="+")) print $1,0, $2+exp_win; if (($3-exp_win<0) && ($4=="-")) print $1,0, $3+exp_win}' \
-> $All_RNA_gene_file_start'.idsort.all.Nkbupdownexp.bed'
-
 ### get Protein Coding gene Proximal regions (+/- 1Kb) bed
 cat $All_RNA_gene_file_start'.idsort.protein_coding.bed' \
 | awk -F '\t' -v OFS='\t' -v exp_win=1000 '{if (($2-exp_win>0) && ($4=="+")) print $1,$2-exp_win, $2+exp_win; if (($3-exp_win>0) && ($4=="-")) print $1,$3-exp_win, $3+exp_win; if (($2-exp_win<0) && ($4=="+")) print $1,0, $2+exp_win; if (($3-exp_win<0) && ($4=="-")) print $1,0, $3+exp_win}' \
@@ -109,9 +103,6 @@ cat $All_RNA_gene_file_start'.idsort.protein_coding.bed' \
 ### add cCRE ids
 bedtools intersect -a $cCRE_bed_file -b $All_RNA_gene_file_start'.idsort.protein_coding.Nkbupdownexp.bed' -v > $cCRE_bed_file_start'.noProximal.bed'
 time Rscript $state_coe_score_Script_folder'/coe_human/add_id.R' $cCRE_bed_file $cCRE_bed_file_start'.withid.bed'
-
-### get cCREs intersect with All genes' Proximal regions
-bedtools intersect -a $cCRE_bed_file_start'.withid.bed' -b $All_RNA_gene_file_start'.idsort.all.Nkbupdownexp.bed' -c > S3V2_IDEAS_hg38_ccre2.cCRE.M.withid.atProximal.bed
 ############################################################################################################
 
 
