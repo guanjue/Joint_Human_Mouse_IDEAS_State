@@ -82,7 +82,7 @@ dss_umap = umap(round(dssPD_ct[, colnames(dssPD_ct)!='NEU_C0011IH2_D'], 5), pres
 dir.create('coe_umap_PD_esRP')
 ### plot heatscatter plot
 png('coe_umap_PD_esRP/state_coe.mouse.umap.PD.png')
-heatscatter(dss_umap$layout[,1], dss_umap$layout[,2])
+heatscatter(dss_umap$layout[,1], dss_umap$layout[,2], cex=0.5, xlab='UMAP Dim1', ylab='UMAP Dim2')
 dev.off()
 
 for (i in 1:dim(dss)[2]){
@@ -90,9 +90,16 @@ for (i in 1:dim(dss)[2]){
 png(paste('coe_umap_PD_esRP/', 'state_coe.mouse.umap.PD.', ct_i,'.png', sep=''))
 rbPal = colorRampPalette(c('blue', 'gray90','red'))
 color_sig_range = (dss[,i])
+print(summary(color_sig_range))
 color_sig_range[color_sig_range>quantile(as.numeric(as.matrix(dss)),0.99)] = quantile(as.numeric(as.matrix(dss)),0.99)
 plot_color = rbPal(500)[as.numeric(cut(c(-quantile(as.numeric(as.matrix(dss)),0.99), quantile(as.numeric(as.matrix(dss)),0.99), color_sig_range),breaks = 500))][-c(1:2)]
-plot(dss_umap$layout[,1], dss_umap$layout[,2], col=plot_color, pch=16)
+plot(dss_umap$layout[,1], dss_umap$layout[,2], col='white', pch=16, main = ct_i, xlab='UMAP Dim1', ylab='UMAP Dim2', cex = 0.5)
+plot_1 = color_sig_range <= quantile(color_sig_range, 0.1)
+points(dss_umap$layout[plot_1,1], dss_umap$layout[plot_1,2], col=plot_color[plot_1], pch=16, cex = 0.5)
+for (q in seq(0.1,0.99, by=0.01)){
+	plot_1 = ((color_sig_range > quantile(color_sig_range, q)) * (color_sig_range <= quantile(color_sig_range, q+0.01))) != 0
+	points(dss_umap$layout[plot_1,1], dss_umap$layout[plot_1,2], col=plot_color[plot_1], pch=16, cex = 0.5)
+}
 dev.off()
 }
 
@@ -104,8 +111,8 @@ dir.create('coe_umap_PD_meta_clusterBinary')
 for (i in 1:length(unique(cCRE_clusters[,6]))){
 	metaC_i = unique(cCRE_clusters[,6])[i]
 png(paste('coe_umap_PD_meta_clusterBinary/', 'state_coe.mouse.umap.PD.', metaC_i,'.png', sep=''))
-plot(dss_umap$layout[,1], dss_umap$layout[,2], col='gray90', pch=16)
-points(dss_umap$layout[cCRE_clusters[,6]==metaC_i,1], dss_umap$layout[cCRE_clusters[,6]==metaC_i,2], col='black', pch=16)
+plot(dss_umap$layout[,1], dss_umap$layout[,2], col='gray90', pch=16, cex = 0.5, main = paste0('Meta-Cluster:', metaC_i), xlab='UMAP Dim1', ylab='UMAP Dim2')
+points(dss_umap$layout[cCRE_clusters[,6]==metaC_i,1], dss_umap$layout[cCRE_clusters[,6]==metaC_i,2], col='black', pch=16, cex = 0.5)
 dev.off()
 }
 
