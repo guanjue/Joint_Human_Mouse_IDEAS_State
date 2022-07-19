@@ -231,15 +231,36 @@ dss_plot[dss>plot_lim_PD]=plot_lim_PD
 pheatmap(dss_plot[order(new_id),hclust_cor_order], color=my_colorbar, breaks = breaksList, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
 dev.off()
 
+
 png('cCRE_coe.human.heatmap.D.qda.clusterID.png', width=200, height=1800)
 library(RColorBrewer)
 n = 200#length(unique(new_id))
 qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
-col_vector = c(unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))) )
+col_vector = c(unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), 
+	unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), 
+	unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), 
+	unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))) )
 dss_cluster_id = cbind(new_id, new_id_meta)
 longest_colname = max(nchar(colnames(dss)))
 colnames(dss_cluster_id) = c(colnames(dss)[nchar(colnames(dss))==longest_colname][1], paste(c(rep('b', longest_colname-2), 'ID'), collapse=''))
 pheatmap(dss_cluster_id[order(new_id),], color=col_vector, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
+dev.off()
+
+ddd = read.table('S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.100.txt', header=T, sep='\t')
+png('cCRE_coe.human.heatmap.D.qda.clusterID2.png', width=200, height=1800)
+library(RColorBrewer)
+n = 200#length(unique(new_id))
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = c(unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), 
+	unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), 
+	unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))), 
+	unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals))) )
+dss_cluster_id = cbind(new_id, new_id_meta)
+longest_colname = max(nchar(colnames(dss)))
+colnames(dss_cluster_id) = c(colnames(dss)[nchar(colnames(dss))==longest_colname][1], paste(c(rep('b', longest_colname-2), 'ID'), collapse=''))
+label_mat2 = cbind(ddd[,7])
+colnames(label_mat2) = colnames(dss)[nchar(colnames(dss))==longest_colname][1]
+pheatmap(label_mat2[order(new_id),], color=col_vector, cluster_cols = F,cluster_rows=F, clustering_method = 'complete',annotation_names_row=F,annotation_names_col=TRUE,show_rownames=F,show_colnames=TRUE)
 dev.off()
 
 png('cCRE_coe.human.heatmap.D.qda.meanvec.png', width=1200, height=1800)
