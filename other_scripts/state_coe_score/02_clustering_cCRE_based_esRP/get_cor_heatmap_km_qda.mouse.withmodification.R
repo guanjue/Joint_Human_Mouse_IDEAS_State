@@ -384,6 +384,49 @@ write.table(dss_out, 'S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.PDmerg
 #write.table(cbind(table(kmeans_meta_dynamicTC[kmeans_meta$order]))[unique(kmeans_meta_dynamicTC[kmeans_meta$order]),], 'S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.PDmerged.metaCluster_Heatmap_order.txt', quote=F, row.names=T, col.names=T, sep='\t')
 
 
+### plot mean matrix
+library(pheatmap)
+coe = read.table('S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.PDmerged.clusterID.txt', header=T, sep='\t')
+
+Meta_cluster_id = unique(coe[,6])[order(unique(coe[,6]))]
+meta_cluster_mean_mat = c()
+for (meta_i in Meta_cluster_id){
+	meta_cluster_mean_mat = rbind(meta_cluster_mean_mat, colMeans(coe[coe[,6]==meta_i,-c(1:6)]))
+}
+rownames(meta_cluster_mean_mat) = Meta_cluster_id
+remove_str_end = function(x){
+	x_split = unlist(strsplit(x, '_'))
+	x_split = x_split[-length(x_split)]
+	return(paste(x_split, collapse='_'))
+}
+
+colnames(meta_cluster_mean_mat) = apply(cbind(colnames(meta_cluster_mean_mat)), 1, remove_str_end )
+png('VISION.mm10.cCRE.meta_cluster.meansig.png', width=1000, height=1000)
+plot_lim_PD = quantile(as.numeric(as.matrix(meta_cluster_mean_mat)),0.99)
+breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+pheatmap(meta_cluster_mean_mat[,hclust_cor_order], cluster_cols=F, cluster_rows=F, color=my_colorbar, breaks = breaksList, cex=1.5)
+dev.off()
+
+
+
+
+KM_cluster_id = unique(coe[,5])[order(unique(coe[,5]))]
+km_cluster_mean_mat = c()
+for (km_i in KM_cluster_id){
+	km_cluster_mean_mat = rbind(km_cluster_mean_mat, colMeans(coe[coe[,5]==km_i,-c(1:6)]))
+}
+rownames(km_cluster_mean_mat) = KM_cluster_id
+colnames(km_cluster_mean_mat) = apply(cbind(colnames(km_cluster_mean_mat)), 1, remove_str_end )
+
+png('VISION.mm10.cCRE.KM100_cluster.meansig.png', width=1000, height=2000)
+plot_lim_PD = quantile(as.numeric(as.matrix(km_cluster_mean_mat)),0.99)
+breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+pheatmap(km_cluster_mean_mat[,hclust_cor_order], cluster_cols=F, cluster_rows=F, color=my_colorbar, breaks = breaksList, cex=1.5)
+dev.off()
+
+
 #Great analysis:
 #Proximal: 5.0kb upstream, 1.0kb downstream, 
 #Distal: up to 100kb
