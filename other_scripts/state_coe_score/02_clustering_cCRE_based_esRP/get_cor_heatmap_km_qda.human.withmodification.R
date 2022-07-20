@@ -422,6 +422,13 @@ for (meta_i in Meta_cluster_id){
 	meta_cluster_mean_mat = rbind(meta_cluster_mean_mat, colMeans(coe[coe[,6]==meta_i,-c(1:6)]))
 }
 rownames(meta_cluster_mean_mat) = Meta_cluster_id
+remove_str_end = function(x){
+	x_split = unlist(strsplit(x, '_'))
+	x_split = x_split[-length(x_split)]
+	return(paste(x_split, collapse='_'))
+}
+
+colnames(meta_cluster_mean_mat) = apply(cbind(colnames(meta_cluster_mean_mat)), 1, remove_str_end )
 png('VISION.hg38.cCRE.meta_cluster.meansig.png', width=1000, height=1000)
 plot_lim_PD = quantile(as.numeric(as.matrix(meta_cluster_mean_mat)),0.99)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
@@ -430,12 +437,16 @@ pheatmap(meta_cluster_mean_mat[,hclust_cor_order], cluster_cols=F, cluster_rows=
 dev.off()
 
 
+
+
 KM_cluster_id = unique(coe[,5])[order(unique(coe[,5]))]
 km_cluster_mean_mat = c()
 for (km_i in KM_cluster_id){
 	km_cluster_mean_mat = rbind(km_cluster_mean_mat, colMeans(coe[coe[,5]==km_i,-c(1:6)]))
 }
 rownames(km_cluster_mean_mat) = KM_cluster_id
+colnames(km_cluster_mean_mat) = apply(cbind(colnames(km_cluster_mean_mat)), 1, remove_str_end )
+
 png('VISION.hg38.cCRE.KM100_cluster.meansig.png', width=1000, height=2000)
 plot_lim_PD = quantile(as.numeric(as.matrix(km_cluster_mean_mat)),0.99)
 breaksList = seq(-plot_lim_PD, plot_lim_PD, by = 0.001)
