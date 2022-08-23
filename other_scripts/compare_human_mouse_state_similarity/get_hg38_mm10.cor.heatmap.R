@@ -91,16 +91,17 @@ x = as.numeric(x)
 return(mean(x[x>quantile(x, 0.9)]))
 }
 
-png(paste(output_file, '.bar.1.png', sep=''), height=200, width=800)
+png(paste(output_file, '.bar.1.png', sep=''), height=100, width=800)
+par(mar = c(0, 0, 0, 0))
 s1 = apply(d12_cor_mat_adj,2,function(x) get_cor_score(x))
 s1logp = -log10(pnorm(s1, mean(s1), sd(s1), lower.tail = F))
-barplot(rbind(s1logp))
+barplot(rbind(s1logp), axes = F)
 dev.off()
 
-png(paste(output_file, '.bar.2.png', sep=''), height=200, width=800)
+png(paste(output_file, '.bar.2.png', sep=''), height=100, width=800)
+par(mar = c(0, 0, 0, 0))
 s1 = apply(d12_cor_mat_adj,1,function(x) get_cor_score(x))
 s1logp = -log10(pnorm(s1, mean(s1), sd(s1), lower.tail = F))
-barplot(rbind(s1logp))
-
+barplot(rbind(s1logp), axes = F)
 dev.off()
 

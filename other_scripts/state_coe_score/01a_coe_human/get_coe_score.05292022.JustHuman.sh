@@ -65,6 +65,27 @@ wget https://usevision.org/data/hg38/IDEASstates/ideasJointMay2021/S3V2_IDEAS_hg
 
 
 ############################################################################################################
+### preprocess downloaded data gene locus
+############################################################################################################
+### prepare gene set
+#wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_39/gencode.v39.basic.annotation.gff3.gz
+#gunzip gencode.v39.basic.annotation.gff3.gz
+#cat gencode.v39.basic.annotation.gff3 | awk -F 'gene_type=' '{print $2}' | awk -F ';' '{print $1}' > gene_types.txt
+#cat gencode.v39.basic.annotation.gff3 | awk -F 'gene_name=' '{print $2}' | awk -F ';' '{print $1}' > gene_names.txt
+#paste gene_types.txt gene_names.txt gencode.v39.basic.annotation.gff3 | awk -F '\t' -v OFS='\t' '{if ($1=="protein_coding" && $5=="gene") print $3,$6,$7,$9,$2}' > hg38.gene.bed
+#rm gene_types.txt gene_names.txt
+
+#wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.basic.annotation.gff3.gz
+#gunzip gencode.vM25.basic.annotation.gff3.gz
+#cat gencode.vM25.basic.annotation.gff3 | awk -F 'gene_type=' '{print $2}' | awk -F ';' '{print $1}' > gene_types.txt
+#cat gencode.vM25.basic.annotation.gff3 | awk -F 'gene_name=' '{print $2}' | awk -F ';' '{print $1}' > gene_names.txt
+#paste gene_types.txt gene_names.txt gencode.vM25.basic.annotation.gff3 | awk -F '\t' -v OFS='\t' '{if ($1=="protein_coding" && $5=="gene") print $3,$6,$7,$9,$2}' > mm10.gene.bed
+#rm gene_types.txt gene_names.txt
+############################################################################################################
+
+
+
+############################################################################################################
 ### preprocess downloaded data
 ############################################################################################################
 ### get RNA-seq bed file & matrix
@@ -81,6 +102,8 @@ cut -f7,9,10 $gene_annotation > annotation1.txt
 cat annotation1.txt | awk -F ' ' -v OFS='\t' '{if ($4=="gene_type") print $1,$3,$5}' > annotation2.txt
 cat annotation2.txt | awk -F '"' -v OFS='\t' '{print $2,$4,$1}' | sort -k1,1 > annotation3.idsort.od.txt
 time Rscript $state_coe_score_Script_folder'/coe_human/get_new_gene_annotation.R'
+### get geneENS_ID to GeneName
+cat annotation1.txt | awk -F ' ' -v OFS='\t' '{if ($4=="gene_type") print $3,$5,$9}' | awk -F '"' -v OFS='\t' '{if ($4=="protein_coding") print $2,$6}' > gene.ENS_id2GeneName.hg38.txt
 ### annotation3.idsort.txt is used for downstream analysis
 
 ### get protein coding genes TPM mat
