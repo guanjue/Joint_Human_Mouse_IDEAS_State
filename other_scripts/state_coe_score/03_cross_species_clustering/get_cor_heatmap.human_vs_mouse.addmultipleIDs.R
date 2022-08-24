@@ -261,21 +261,25 @@ for (KM_i in unique(all_cCREs_prediction_Y)){
 	M_rows = cCRE_id=='M'
 	dhs_dms_ctmerge_shared_reorder_meansig_M = rbind(dhs_dms_ctmerge_shared_reorder_meansig_M, colMeans(dhs_dms_ctmerge_shared_reorder[M_rows,][all_cCREs_prediction_Y[M_rows]==KM_i,]))
 }
+rownames(dhs_dms_ctmerge_shared_reorder_meansig) = unique(all_cCREs_prediction_Y)
+
+### add noise
+dhs_dms_ctmerge_shared_reorder_meansig_OD = dhs_dms_ctmerge_shared_reorder_meansig
+dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig_OD
+#dhs_dms_ctmerge_shared_reorder_meansig[dhs_dms_ctmerge_shared_reorder_meansig<0.01] = 0
+dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig + matrix(runif(dim(dhs_dms_ctmerge_shared_reorder_meansig)[1]*dim(dhs_dms_ctmerge_shared_reorder_meansig)[2], -0.01, 0.01), dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[2])
 
 hclust_cCRE = hclust(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))))
 #hclust_cCRE = hclust(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))))
 #hclust_cCRE = hclust( dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
 #hclust_cCRE_col = hclust(dist(t(dhs_dms_ctmerge_shared_reorder_meansig) ))
 #hclust_cCRE_col = hclust(dist(1-cosine((dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor((dhs_dms_ctmerge_shared_reorder_meansig))/2 ))
-
-pdf('Joint.metacluster.tree.pdf')
-plot(hclust_cCRE)
-dev.off()
 #################################################
 
 
 #################################################
 ### meta-cluster
+'''
 hclust_cCRE_DTC = cutreeDynamic(hclust_cCRE, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig)))), method='hybrid')
 table(hclust_cCRE_DTC)
 ### modified
@@ -286,28 +290,65 @@ hclust_cCRE_DTC_modified = hclust_cCRE_DTC
 #hclust_cCRE_DTC_modified[hclust_cCRE_DTC==7] = 1
 #hclust_cCRE_DTC_modified[hclust_cCRE_DTC==12] = 5
 
-'''
 ### check initial KM-K
 set.seed(2019)
 dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-KM_Jmet_KM_ratio = c()
+KM_Jmet_KM_ratio_mat = c()
+for (iter_i in 1:30){
+	KM_Jmet_KM_ratio = c()
 for (ini_k in seq(2,25)){
 	print(ini_k)
 KM_Jmet_KM = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=ini_k)
 	KM_Jmet_KM_ratio = c(KM_Jmet_KM_ratio, KM_Jmet_KM$tot.withinss/KM_Jmet_KM$betweenss)
 }
+KM_Jmet_KM_ratio_mat = cbind(KM_Jmet_KM_ratio_mat, KM_Jmet_KM_ratio)
+}
+KM_Jmet_KM_ratio_mat = rowMeans(KM_Jmet_KM_ratio_mat)
 pdf("KM_Jmet_KM.determineK.pdf")
-plot(seq(2,25), KM_Jmet_KM_ratio)
-lines(seq(2,25), KM_Jmet_KM_ratio)
+plot(seq(2,25), KM_Jmet_KM_ratio_mat)
+lines(seq(2,25), KM_Jmet_KM_ratio_mat)
 dev.off()
 
 set.seed(2019)
 dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-hclust_cCRE_DTC_modified = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=9)$cluster
+hclust_cCRE_DTC_modified = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=11)$cluster
 '''
+set.seed(2019)
+K = 11
+iter_n = 30
+dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
+### run Kmeans 30 times 
+KM_by_KM_SameClu_count = matrix(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_pca)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig_pca)[1])
+for (iter_i in 1:30){
+	print(iter_i)
+hclust_cCRE_DTC_modified_iter_i = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=K)$cluster
+for (Ki in 1:K){
+	used_rows = which(hclust_cCRE_DTC_modified_iter_i==Ki)
+	for (i in 1:length(used_rows)){
+		for (j in 1:length(used_rows)){
+			KM_by_KM_SameClu_count[used_rows[i],used_rows[j]] = KM_by_KM_SameClu_count[used_rows[i],used_rows[j]]+1
+		}
+	}
+}
+}
+### count the number runs each row-pair are in the same cluster
+colnames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig_pca)
+rownames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig_pca)
+### plot count in same clusters 
+pdf('KM_by_KM_SameClu_count.reproducible.pdf', height=10, width=10)
+pheatmap(KM_by_KM_SameClu_count, cex = 1.5, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(KM_by_KM_SameClu_count), clustering_distance_cols=dist(KM_by_KM_SameClu_count))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+dev.off()
+### Use cutreeDynamic to cluster KMs
+hclust_bySameClu_count = hclust(dist(KM_by_KM_SameClu_count))
+hclust_cCRE_DTC = cutreeDynamic(hclust_bySameClu_count, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(KM_by_KM_SameClu_count)), method='hybrid')
+table(hclust_cCRE_DTC)
+#################################################
 
 
+
+#################################################
 ### get Joint meta-cluster ID
+hclust_cCRE_DTC_modified = hclust_cCRE_DTC
 all_cCREs_prediction_Y_Jmeta = all_cCREs_prediction_Y
 class(all_cCREs_prediction_Y_Jmeta) = 'numeric'
 KM_i = 0
@@ -352,8 +393,6 @@ Jmet_order = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_mea
 pdf('KMPCA.Joint.cluster.reproducible.Jmet.pdf', height=5)
 pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig, cluster_col=T, cluster_rows=T, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
-
-
 #################################################
 
 
@@ -371,6 +410,7 @@ dm_with_JointClusterID_mat_ct = cbind(apply(cbind(dm[,1], as.character(dm[,2]), 
 #################################################
 
 
+
 #################################################
 ### gene gene locus
 dh_with_JointClusterID = cbind(dh[,c(1:3)], all_cCREs_prediction_Y_Jmeta[H_rows])
@@ -381,14 +421,14 @@ JointCluster_exp_P_M = JointCluster_count_HM[,2]/sum(JointCluster_count_HM[,2])
 All_Jmet = as.numeric(names(table(all_cCREs_prediction_Y_Jmeta)))
 
 ###
-get_Function_conserve_cCRE = function(chrH, startH, endH, chrM, startM, endM){
+get_Function_conserve_cCRE = function(chrH, startH, endH, chrM, startM, endM, Jmet_enrichment_scores_all_zpfdr_thresh){
 #chrH = 'chrX'
 #startH = 48760001
 #endH = 48836000
 #chrM = 'chrX'
 #startM = 7919401
 #endM = 8020800
-add_sm_num = 0
+add_sm_num = 1
 included_rows = ((dh_with_JointClusterID[,1]==chrH) * (dh_with_JointClusterID[,2]>=startH) * (dh_with_JointClusterID[,3]<=endH)) != 0
 dh_with_JointClusterID_Gene = dh_with_JointClusterID[included_rows,]
 included_rows = ((dm_with_JointClusterID[,1]==chrM) * (dm_with_JointClusterID[,2]>=startM) * (dm_with_JointClusterID[,3]<=endM)) != 0
@@ -399,7 +439,7 @@ dm_with_JointClusterID_Gene = dm_with_JointClusterID[included_rows,]
 ### expect state count
 JointCluster_count_H_exp = (dim(dh_with_JointClusterID_Gene)[1])*JointCluster_exp_P_H
 JointCluster_count_M_exp = (dim(dm_with_JointClusterID_Gene)[1])*JointCluster_exp_P_M
-JointCluster_count_HM_exp = (JointCluster_count_H_exp+JointCluster_exp_P_H)*(JointCluster_count_M_exp+JointCluster_exp_P_M)
+JointCluster_count_HM_exp = (JointCluster_count_H_exp+add_sm_num)*(JointCluster_count_M_exp+add_sm_num)
 #print(JointCluster_count_HM_exp)
 #print(JointCluster_count_H_exp)
 #print(JointCluster_count_M_exp)
@@ -415,7 +455,7 @@ JointCluster_count_M_obs = c(JointCluster_count_M_obs, sum(dm_with_JointClusterI
 ### get odd ratio
 #gene_exp = cbind((JointCluster_count_H_obs+add_sm_num)/(JointCluster_count_H_exp+add_sm_num), (JointCluster_count_M_obs+add_sm_num)/(JointCluster_count_M_exp+add_sm_num), ((JointCluster_count_H_obs+add_sm_num)*(JointCluster_count_M_obs+add_sm_num)) / ((JointCluster_count_H_exp+add_sm_num)*(JointCluster_count_M_exp+add_sm_num)) )
 #gene_exp = ((JointCluster_count_H_obs+add_sm_num)*(JointCluster_count_M_obs+add_sm_num)) / ((JointCluster_count_H_exp+add_sm_num)*(JointCluster_count_M_exp+add_sm_num))
-gene_exp = ((JointCluster_count_H_obs+JointCluster_exp_P_H)*(JointCluster_count_M_obs+JointCluster_exp_P_M)) / JointCluster_count_HM_exp
+gene_exp = ((JointCluster_count_H_obs+add_sm_num)*(JointCluster_count_M_obs+add_sm_num)) / JointCluster_count_HM_exp
 #print(dh_with_JointClusterID_GATA1)
 #print(dm_with_JointClusterID_GATA1)
 #print(gene_exp)
@@ -425,8 +465,7 @@ Jmet$Jmet_score = gene_exp
 #Jmet$cCRE_M = cbind(dm_with_JointClusterID_GATA1[is.element(dm_with_JointClusterID_GATA1[,4], dh_with_JointClusterID_GATA1[,4]),1:3])
 #Jmet$cCRE_H = cbind(dh_with_JointClusterID_Gene[is.element(dh_with_JointClusterID_Gene[,4], as.numeric(names(gene_exp)[gene_exp>=2])),])
 #Jmet$cCRE_M = cbind(dm_with_JointClusterID_Gene[is.element(dm_with_JointClusterID_Gene[,4], as.numeric(names(gene_exp)[gene_exp>=2])),])
-Jmet_enrichment_scores_all_zpfdr_thresh = 2
-Jmet_enrichment_scores_all_zpfdr_thresh = 2.922063
+#Jmet_enrichment_scores_all_zpfdr_thresh = 2.922063
 Jmet$cCRE_H = cbind(dh_with_JointClusterID_Gene, is.element(dh_with_JointClusterID_Gene[,4], as.numeric(names(gene_exp)[gene_exp>=Jmet_enrichment_scores_all_zpfdr_thresh]))*1)
 Jmet$cCRE_M = cbind(dm_with_JointClusterID_Gene, is.element(dm_with_JointClusterID_Gene[,4], as.numeric(names(gene_exp)[gene_exp>=Jmet_enrichment_scores_all_zpfdr_thresh]))*1)
 return(Jmet)
@@ -482,17 +521,58 @@ mm10_gene_shared_exp[mm10_gene_shared_exp[,2]<0,2] = 0
 
 #################################################
 ### get Gene-by-Jmeta matrix
-GATA1_exp = get_Function_conserve_cCRE('chrX', 48760001, 48836000, 'chrX', 7919401,8020800)
+GATA1_exp = get_Function_conserve_cCRE('chrX', 48760001, 48836000, 'chrX', 7919401,8020800, 2.922063)
 meta_cluster_mat = as.data.frame(matrix(0, nrow=length(shared_genes), ncol=length(GATA1_exp$Jmet_score)))
 cCRE_H_Jmeta = c()
 cCRE_M_Jmeta = c()
 ptm <- proc.time()
 for (i in 1:length(shared_genes)){
-	if (i%%100==0){print(i)}
+	if (i%%1000==0){print(i)}
 	shared_genes_i = shared_genes[i]
 	bed_H = hg38_gene_shared_exp[i,1:3][1,]
 	bed_M = mm10_gene_shared_exp[i,1:3][1,]
-	JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3])
+	JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3], 2.922063)
+	meta_cluster_mat[i,] = JMeta_i$Jmet_score
+	if (dim(JMeta_i$cCRE_H)[1]>0){cCRE_H_Jmeta = rbind(cCRE_H_Jmeta, cbind(JMeta_i$cCRE_H, shared_genes_i))}
+	if (dim(JMeta_i$cCRE_M)[1]>0){cCRE_M_Jmeta = rbind(cCRE_M_Jmeta, cbind(JMeta_i$cCRE_M, shared_genes_i))}
+}
+proc.time() - ptm
+###
+colnames(meta_cluster_mat) = rownames(JointCluster_count_HM)
+rownames(meta_cluster_mat) = shared_genes
+### get enrichment threshold for each Jmet
+get_thresh = function(x){
+	xzp = pnorm((x-mean(x))/sd(x), lower.tail=F)
+	thresh0 = 0.05
+	thresh1 = 0.01
+	xzp = pnorm((x-mean(x[xzp>=thresh1]))/sd(x[xzp>=thresh1]), lower.tail=F)
+	return(min(x[xzp<thresh0]))
+}
+meta_cluster_mat_thresh = apply(meta_cluster_mat,2,get_thresh)
+meta_cluster_mat_thresh
+
+for (i in 1:dim(meta_cluster_mat)[2]){
+png(paste0('Enrichment.hist.',i,'.png'))
+hist(meta_cluster_mat[,i], breaks=50)
+dev.off()
+}
+#################################################
+
+
+
+#################################################
+### get Gene-by-Jmeta matrix round2
+GATA1_exp = get_Function_conserve_cCRE('chrX', 48760001, 48836000, 'chrX', 7919401,8020800, meta_cluster_mat_thresh)
+meta_cluster_mat = as.data.frame(matrix(0, nrow=length(shared_genes), ncol=length(GATA1_exp$Jmet_score)))
+cCRE_H_Jmeta = c()
+cCRE_M_Jmeta = c()
+ptm <- proc.time()
+for (i in 1:length(shared_genes)){
+	if (i%%1000==0){print(i)}
+	shared_genes_i = shared_genes[i]
+	bed_H = hg38_gene_shared_exp[i,1:3][1,]
+	bed_M = mm10_gene_shared_exp[i,1:3][1,]
+	JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3], meta_cluster_mat_thresh)
 	meta_cluster_mat[i,] = JMeta_i$Jmet_score
 	if (dim(JMeta_i$cCRE_H)[1]>0){cCRE_H_Jmeta = rbind(cCRE_H_Jmeta, cbind(JMeta_i$cCRE_H, shared_genes_i))}
 	if (dim(JMeta_i$cCRE_M)[1]>0){cCRE_M_Jmeta = rbind(cCRE_M_Jmeta, cbind(JMeta_i$cCRE_M, shared_genes_i))}
@@ -504,9 +584,9 @@ rownames(meta_cluster_mat) = shared_genes
 write.table(cbind(shared_genes, round(meta_cluster_mat,5)), 'Human_Mouse_shared_genes.Jmeta.enrich.txt', quote=F, sep='\t', col.names=T, row.names=F)
 write.table(cCRE_H_Jmeta, 'cCRE.Gene50KB.hg38.bed', quote=F, sep='\t', col.names=T, row.names=F)
 write.table(cCRE_M_Jmeta, 'cCRE.Gene50KB.mm10.bed', quote=F, sep='\t', col.names=T, row.names=F)
-
 #################################################
 chrX 48783000 48783200
+
 
 #################################################
 ### cluster gene by Jmet Joint-Enrichment
@@ -536,6 +616,7 @@ colnames(meta_cluster_mat_log2_df)[2] = 'GeneKM_ID'
 pdf('meta_cluster_mat_log2_df.hist.pdf')
 Jmet_enrichment_scores_all = c(as.matrix(meta_cluster_mat_log2_df[,-c(1:2)]))
 Jmet_enrichment_scores_all_zpfdr = p.adjust(pnorm((Jmet_enrichment_scores_all - mean(Jmet_enrichment_scores_all)) / sd(Jmet_enrichment_scores_all), lower.tail=F), 'fdr')
+Jmet_enrichment_scores_all_zpfdr = p.adjust(pnorm((Jmet_enrichment_scores_all - mean(Jmet_enrichment_scores_all[Jmet_enrichment_scores_all_zpfdr>=0.1])) / sd(Jmet_enrichment_scores_all[Jmet_enrichment_scores_all_zpfdr>=0.1]), lower.tail=F), 'fdr')
 Jmet_enrichment_scores_all_zpfdr_thresh = min(Jmet_enrichment_scores_all[Jmet_enrichment_scores_all_zpfdr<0.1])
 hist(Jmet_enrichment_scores_all, breaks=50, cex.axis=2)
 abline(v=Jmet_enrichment_scores_all_zpfdr_thresh)
@@ -548,16 +629,29 @@ write.table(meta_cluster_mat_log2_df, 'Human_Mouse_shared_genes.Jmeta.enrich.txt
 #################################################
 ### plot heatmap
 png('GeneGroup_by_JMeta.Joint.cluster.png', width = 1000, height = 600)
-meta_cluster_mat_plot = c()
+meta_cluster_mat_GeneGroup_Jmet = c()
 used_order = Jmet_order
 for (coli in used_order){
-	meta_cluster_mat_plot = cbind(meta_cluster_mat_plot, meta_cluster_mat_log2_km_mean[,colnames(meta_cluster_mat)==coli])
+	meta_cluster_mat_GeneGroup_Jmet = cbind(meta_cluster_mat_GeneGroup_Jmet, meta_cluster_mat_log2_km_mean[,colnames(meta_cluster_mat)==coli])
 }
-colnames(meta_cluster_mat_plot) = used_order
-rownames(meta_cluster_mat_plot) = rownames(meta_cluster_mat_log2_km_mean)
-pheatmap((t(meta_cluster_mat_plot)), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=T, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig), cex=1.5)
+colnames(meta_cluster_mat_GeneGroup_Jmet) = used_order
+rownames(meta_cluster_mat_GeneGroup_Jmet) = rownames(meta_cluster_mat_log2_km_mean)
+pheatmap((t(meta_cluster_mat_GeneGroup_Jmet)), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=T, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig), cex=1.5)
 dev.off()
-
+### get binary enrichment based on GeneGroup
+meta_cluster_mat_GeneGroup_Jmet_vec = c(meta_cluster_mat_GeneGroup_Jmet)
+for (i in 1:10){
+	print(length(meta_cluster_mat_GeneGroup_Jmet_vec))
+#meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr = p.adjust(pnorm((meta_cluster_mat_GeneGroup_Jmet_vec - mean(meta_cluster_mat_GeneGroup_Jmet_vec)) / sd(meta_cluster_mat_GeneGroup_Jmet_vec), lower.tail=F), 'fdr')
+#meta_cluster_mat_GeneGroup_Jmet_vec = meta_cluster_mat_GeneGroup_Jmet_vec[meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr>=0.1]
+meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr = pnorm((meta_cluster_mat_GeneGroup_Jmet_vec - mean(meta_cluster_mat_GeneGroup_Jmet_vec)) / sd(meta_cluster_mat_GeneGroup_Jmet_vec), lower.tail=F)
+meta_cluster_mat_GeneGroup_Jmet_vec = meta_cluster_mat_GeneGroup_Jmet_vec[meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr>=0.001]
+}
+### get Jmet enrichment for each GeneGroup for Downstream analysis
+meta_cluster_mat_GeneGroup_Jmet_z = (meta_cluster_mat_GeneGroup_Jmet - mean(meta_cluster_mat_GeneGroup_Jmet_vec)) / sd(meta_cluster_mat_GeneGroup_Jmet_vec)
+meta_cluster_mat_GeneGroup_Jmet_zp_01 = t((apply(meta_cluster_mat_GeneGroup_Jmet_z, 2, function(x) pnorm(x, lower.tail=F)) < 0.001) * 1)
+meta_cluster_mat_GeneGroup_Jmet_zp_01
+### 
 png('Gene_by_JMeta.Joint.cluster.png', width = 1000, height = 600)
 meta_cluster_mat_plot = c()
 used_order = Jmet_order
@@ -567,7 +661,11 @@ for (coli in used_order){
 colnames(meta_cluster_mat_plot) = used_order
 rownames(meta_cluster_mat_plot) = rownames(meta_cluster_mat)
 meta_cluster_mat_plot = meta_cluster_mat_plot[order(meta_cluster_mat_log2_km$cluster),]
-pheatmap(log2(t(meta_cluster_mat_plot)+1), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=F, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig), cex=1.5)
+pheatmap(log2(t(meta_cluster_mat_plot)+1), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=F, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
+dev.off()
+png('Gene_by_JMeta.Joint.cluster.binary.png', width = 1000, height = 600)
+my_colorbar=colorRampPalette(c('white', 'black'))(n = 100)
+pheatmap(meta_cluster_mat_GeneGroup_Jmet_zp_01, color=my_colorbar, cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=T, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
 dev.off()
 #################################################
 
@@ -578,11 +676,11 @@ dev.off()
 bash1 = 'mkdir /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/'
 system(bash1)
 ### get cCRE with H/MIDs
-bash2 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_s.bed mouse_ccre_mm10_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.bed'
+bash2 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_s.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.bed'
 system(bash2)
 bash3 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $2,$3,$4,$1}\' | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_sf_s.withMID.bed'
 system(bash3)
-bash4 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_s.bed human_ccre_hg38_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.bed'
+bash4 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_s.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.bed'
 system(bash4)
 bash5 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $2,$3,$4,$1}\' | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_sf_s.withHID.bed'
 system(bash5)
@@ -726,9 +824,47 @@ add_Gene_KMID = function(input_mat_file, output_mat_file, meta_cluster_mat_log2_
 }
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38 = add_Gene_KMID('cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.bed', 'cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.GeneKMID.bed', meta_cluster_mat_log2_km, cCRE_H_Jmeta_withMSF_hg38_regions_set1)
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10 = add_Gene_KMID('cCRE.Gene50KB.mm10.JmetID.FS01.geneName.MID.HID.S01.TSS.bed', 'cCRE.Gene50KB.mm10.JmetID.FS01.geneName.MID.HID.S01.TSS.GeneKMID.bed', meta_cluster_mat_log2_km, cCRE_M_Jmeta_withHSF_mm10_regions_set1)
+### check
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38[,6]=='GATA1',]
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10[,6]=='GATA1',]
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38[,6]=='ALAS2',]
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10[,6]=='ALAS2',]
 #################################################
+
+
+'''
+#################################################
+### get F01 based on Gene Kmeans clusters
+add_F01_KM = function(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat, meta_cluster_mat_GeneGroup_Jmet_zp_01){
+	F01KM = rep(0, dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat)[1])
+	for (i in as.numeric(colnames(meta_cluster_mat_GeneGroup_Jmet_zp_01))){
+		print(i)
+		meta_cluster_mat_GeneGroup_Jmet_zp_01_i = as.numeric(rownames(meta_cluster_mat_GeneGroup_Jmet_zp_01)[meta_cluster_mat_GeneGroup_Jmet_zp_01[,i]==1])
+		meta_cluster_mat_GeneGroup_Jmet_zp_01_i_binary = is.element(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat$JmetID, meta_cluster_mat_GeneGroup_Jmet_zp_01_i) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat$GeneKMID==i)
+		F01KM[meta_cluster_mat_GeneGroup_Jmet_zp_01_i_binary] = 1
+	}
+	return(F01KM)
+}
+### get F01 based on Gene Kmeans clusters
+hg38_F01KM = add_F01_KM(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38, meta_cluster_mat_GeneGroup_Jmet_zp_01)
+mm10_F01KM = add_F01_KM(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10, meta_cluster_mat_GeneGroup_Jmet_zp_01)
+### check
+cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38, hg38_F01KM)[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$GeneName=='GATA1',]
+cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38, hg38_F01KM)[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$GeneName=='ALAS2',]
+### 
+hg38_F01_OD = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$F01
+mm10_F01_OD = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01
+### replace original F01
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$F01 = hg38_F01KM
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01 = mm10_F01KM
+### 
+hg38_F01_new = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$F01
+mm10_F01_new = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01
+###
+#cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$F01 = hg38_F01_OD
+#cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01 = mm10_F01_OD
+#################################################
+'''
 
 
 #################################################
@@ -788,9 +924,9 @@ gene_RNA_Jmet_cor_plot_df = cbind(as.data.frame(rownames(gene_RNA_Jmet_cor)), ge
 colnames(gene_RNA_Jmet_cor_plot_df)[1] = 'shared_genes'
 
 gene_RNA_Jmet_cor_plot_df_merge = merge(gene_RNA_Jmet_cor_plot_df, meta_cluster_mat_log2_df, by='shared_genes', all.x=T)
-gene_RNA_Jmet_cor_plot_df_merge_plot = gene_RNA_Jmet_cor_plot_df_merge[order(gene_RNA_Jmet_cor_plot_df_merge$GeneKM_ID),2:9]
+gene_RNA_Jmet_cor_plot_df_merge_plot = gene_RNA_Jmet_cor_plot_df_merge[order(gene_RNA_Jmet_cor_plot_df_merge$GeneKM_ID),2:(dim(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)[1]+1)]
 #gene_RNA_Jmet_cor_plot_df_merge_plot = gene_RNA_Jmet_cor_plot_df_merge[order(gene_RNA_Jmet_cor_plot_df_merge$GeneKM_ID),11:18]
-colnames(gene_RNA_Jmet_cor_plot_df_merge_plot) = 1:8
+colnames(gene_RNA_Jmet_cor_plot_df_merge_plot) = 1:dim(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)[1]
 
 gene_RNA_Jmet_cor_plot_df_merge_plot1 = c()
 used_order = Jmet_order
@@ -835,7 +971,6 @@ cCRE_esRPmat = dh_with_JointClusterID_mat_ct[,-c(1:8)]
 ptm <- proc.time()
 cCRE_gene_esRP_RNA_cor = rep(-100,dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_withPKID)[1])
 for (i in 1:dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_withPKID)[1]){
-#for (i in c(230827, 230830, 230834, 230838, 230842, 230846, 230852, 230857, 230862, 230867, 230872, 230876)){
 	if (i%%10000==0){print(i)}
 	gene_i = cCRE_gene_genes[i]
 	cCRE_i = cCRE_gene_PKID[i]
@@ -937,23 +1072,32 @@ write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAco
 ### count number 
 SFNP_ID_order = c('P','SF','F','S','N')
 Jmet_i_SFNP_count = c()
+Jmet_i_SFNP_enrich = c()
 for (Jmet_i in used_order){
 	print(Jmet_i)
 	Jmet_i_binary = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$JmetID==Jmet_i
 	SFNP_ID_order_count_i = c()
+	SFNP_ID_order_enrich_i = c()
 	for (SFNP_j in SFNP_ID_order){
 		obs_Jmet_i_SFNP_j = sum((Jmet_i_binary * (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID==SFNP_j))!=0)
 		exp_Jmet_i_SFNP_j = sum(Jmet_i_binary) / dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat)[1] * sum(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID==SFNP_j) 
-		SFNP_ID_order_count_i = c(SFNP_ID_order_count_i, (obs_Jmet_i_SFNP_j+100)/(exp_Jmet_i_SFNP_j+100))
+		SFNP_ID_order_count_i = c(SFNP_ID_order_count_i, obs_Jmet_i_SFNP_j)
+		SFNP_ID_order_enrich_i = c(SFNP_ID_order_enrich_i, (obs_Jmet_i_SFNP_j+100)/(exp_Jmet_i_SFNP_j+100))
 	}
 	Jmet_i_SFNP_count = rbind(Jmet_i_SFNP_count, SFNP_ID_order_count_i)
+	Jmet_i_SFNP_enrich = rbind(Jmet_i_SFNP_enrich, SFNP_ID_order_enrich_i)
 }
 ###
 colnames(Jmet_i_SFNP_count) = SFNP_ID_order
 rownames(Jmet_i_SFNP_count) = used_order
+colnames(Jmet_i_SFNP_enrich) = SFNP_ID_order
+rownames(Jmet_i_SFNP_enrich) = used_order
 ###
 pdf('Jmet_i_SFNP_count.pdf', width=3, height=5)
 pheatmap(log10(Jmet_i_SFNP_count), cluster_cols=F, cluster_rows=F, cex=1.5)
+dev.off()
+pdf('Jmet_i_SFNP_enrich.pdf', width=3, height=5)
+pheatmap(log10(Jmet_i_SFNP_enrich), cluster_cols=F, cluster_rows=F, cex=1.5)
 dev.off()
 #################################################
 
@@ -976,7 +1120,7 @@ for (gene_i in unique(hg38_SFN_loops$GeneName)){
 	TSS_gene_i = hg38_gene_locus_TSS[hg38_gene_locus_TSS[,5]==gene_i,1:3]
 	hg38_SFN_loops_TSS[hg38_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
 }
-
+###
 hg38_SFN_loops = cbind(hg38_SFN_loops[,1:5], round(hg38_SFN_loops[12]*1000), hg38_SFN_loops[,13], rep('#DEDEDE', dim(hg38_SFN_loops)[1]), hg38_SFN_loops[,c(1:3,7)], rep('.', dim(hg38_SFN_loops)[1]), hg38_SFN_loops_TSS, hg38_SFN_loops$GeneName, rep('.', dim(hg38_SFN_loops)[1]) )
 ### remove neg
 hg38_SFN_loops[(hg38_SFN_loops[,6]<0) | (is.na(hg38_SFN_loops[,6])),6] = 0
@@ -985,6 +1129,7 @@ hg38_SFN_loops[hg38_SFN_loops[,7]=='SF',8] = '#FD0606'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='F',8] = '#FFAB00'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='S',8] = '#696969'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#DEDEDE'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='P',8] = '#FF0000'
 hg38_SFN_loops[hg38_SFN_loops[,17]=='GATA1',]
 hg38_gene_shared_exp[hg38_gene_shared_exp[,5]=='GATA1',]
 hg38_SFN_loops[hg38_SFN_loops[,17]=='CSF1R',]
@@ -1012,7 +1157,11 @@ bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
 bash2 = 'cat hg38.SFN.loop.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($17=="H2AC4") print $0}\' >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFN.loop.H2AC4.interact'
 system(bash1)
 system(bash2)
-
+bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
+bash2 = 'cat hg38.SFN.loop.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($17=="ALAS2") print $0}\' >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFN.loop.ALAS2.interact'
+system(bash1)
+system(bash2)
+hg38_gene_shared_exp[hg38_gene_shared_exp[,5]=='ALAS2',]
 #################################################
 
 
@@ -1035,7 +1184,7 @@ for (gene_i in unique(mm10_SFN_loops$GeneName)){
 	TSS_gene_i = mm10_gene_locus_TSS[mm10_gene_locus_TSS[,5]==gene_i,1:3]
 	mm10_SFN_loops_TSS[mm10_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
 }
-
+###
 mm10_SFN_loops = cbind(mm10_SFN_loops[,1:5], round(rep(1,dim(mm10_SFN_loops)[1])*1000), mm10_SFN_loops[,12], rep('#DEDEDE', dim(mm10_SFN_loops)[1]), mm10_SFN_loops[,c(1:3,7)], rep('.', dim(mm10_SFN_loops)[1]), mm10_SFN_loops_TSS, mm10_SFN_loops$GeneName, rep('.', dim(mm10_SFN_loops)[1]) )
 ### remove neg
 mm10_SFN_loops[(mm10_SFN_loops[,6]<0) | (is.na(mm10_SFN_loops[,6])),6] = 0
@@ -1044,6 +1193,7 @@ mm10_SFN_loops[mm10_SFN_loops[,7]=='SF',8] = '#FD0606'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='F',8] = '#FFAB00'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='S',8] = '#696969'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='N',8] = '#DEDEDE'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='P',8] = '#FF0000'
 mm10_SFN_loops[mm10_SFN_loops[,17]=='GATA1',]
 mm10_gene_shared_exp[mm10_gene_shared_exp[,5]=='GATA1',]
 #mm10_SFN_loops[mm10_SFN_loops[,17]=='CSF1R',]
@@ -1057,6 +1207,10 @@ system(bash1)
 system(bash2)
 bash1 = 'cat loop.header.txt > mm10.SFN.loop.interact.tmp'
 bash2 = 'cat mm10.SFN.loop.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($17=="GATA1") print $0}\' >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFN.loop.GATA1.interact'
+system(bash1)
+system(bash2)
+bash1 = 'cat loop.header.txt > mm10.SFN.loop.interact.tmp'
+bash2 = 'cat mm10.SFN.loop.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($17=="ALAS2") print $0}\' >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFN.loop.ALAS2.interact'
 system(bash1)
 system(bash2)
 #################################################
@@ -1114,6 +1268,7 @@ hg38_SFN_loops[hg38_SFN_loops[,7]=='SF',8] = '#FD0606'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='F',8] = '#FFAB00'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='S',8] = '#000000'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#DEDEDE'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='P',8] = '#FF0000'
 hg38_SFN_loops[hg38_SFN_loops[,17]=='GATA1',]
 hg38_gene_shared_exp[hg38_gene_shared_exp[,5]=='GATA1',]
 hg38_SFN_loops[hg38_SFN_loops[,17]=='CSF1R',]
