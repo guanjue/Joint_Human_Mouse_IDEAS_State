@@ -52,7 +52,7 @@ dhs_ctmerge_shared_reorder[,1] = rowMeans(dhs_ctmerge_shared_reorder[,-1])
 dms_ctmerge_shared_reorder[,1] = rowMeans(dms_ctmerge_shared_reorder[,-1])
 #################################################
 
-'''
+
 #################################################
 ### get lm batch effect removal
 ct_i = 1
@@ -84,24 +84,52 @@ dev.off()
 }
 ### batch removal
 dms_ctmerge_shared_reorder_batcheffect_rm = dms_ctmerge_shared_reorder
-for (i in 1:dim(dms_ctmerge_shared_reorder)[2]){
-dms_ctmerge_shared_reorder_batcheffect_rm[,i] = dms_ctmerge_shared_reorder[,i]*lm_kmmean$coefficients[2]+lm_kmmean$coefficients[1]
-}
+#for (i in 1:dim(dms_ctmerge_shared_reorder)[2]){
+#dms_ctmerge_shared_reorder_batcheffect_rm[,i] = dms_ctmerge_shared_reorder[,i]*lm_kmmean$coefficients[2]+lm_kmmean$coefficients[1]
+#}
+dms_ctmerge_shared_reorder_batcheffect_rm = dms_ctmerge_shared_reorder / quantile(dms_ctmerge_shared_reorder[order(-dms_ctmerge_shared_reorder[,1]),1][1:10000], 0.5) * quantile(dhs_ctmerge_shared_reorder[order(-dhs_ctmerge_shared_reorder[,1]),1][1:10000], 0.5)
 #dms_ctmerge_shared_reorder_batcheffect_rm[,1] = rowMeans(dms_ctmerge_shared_reorder_batcheffect_rm[,-1])
 
-png('check_cross_ct.mean.png')
-plot(1:13, apply(dhs_ctmerge_shared_reorder,2,median), ylim=c(0.0, 0.34))
-lines(1:13, apply(dhs_ctmerge_shared_reorder,2,median), col='blue')
-points(1:13, apply(dms_ctmerge_shared_reorder,2,median))
-lines(1:13, apply(dms_ctmerge_shared_reorder,2,median))
+png('check_cross_ct.mean.before.png')
+plot(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][5000]), ylim=c(0.0, 1.5))
+lines(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][5000]), col='blue')
+points(1:13, apply(dms_ctmerge_shared_reorder,2,function(x) x[order(-x)][5000]))
+lines(1:13, apply(dms_ctmerge_shared_reorder,2,function(x) x[order(-x)][5000]))
+###
+points(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][1000]))
+lines(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][1000]), col='blue')
+points(1:13, apply(dms_ctmerge_shared_reorder,2,function(x) x[order(-x)][1000]))
+lines(1:13, apply(dms_ctmerge_shared_reorder,2,function(x) x[order(-x)][1000]))
+###
+points(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][50000]))
+lines(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][50000]), col='blue')
+points(1:13, apply(dms_ctmerge_shared_reorder,2,function(x) x[order(-x)][50000]))
+lines(1:13, apply(dms_ctmerge_shared_reorder,2,function(x) x[order(-x)][50000]))
+dev.off()
+###
+png('check_cross_ct.mean.after.png')
+plot(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][5000]), ylim=c(0.0, 1.5))
+lines(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][5000]), col='blue')
+points(1:13, apply(dms_ctmerge_shared_reorder_batcheffect_rm,2,function(x) x[order(-x)][5000]))
+lines(1:13, apply(dms_ctmerge_shared_reorder_batcheffect_rm,2,function(x) x[order(-x)][5000]))
+###
+points(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][1000]))
+lines(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][1000]), col='blue')
+points(1:13, apply(dms_ctmerge_shared_reorder_batcheffect_rm,2,function(x) x[order(-x)][1000]))
+lines(1:13, apply(dms_ctmerge_shared_reorder_batcheffect_rm,2,function(x) x[order(-x)][1000]))
+###
+points(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][50000]))
+lines(1:13, apply(dhs_ctmerge_shared_reorder,2,function(x) x[order(-x)][50000]), col='blue')
+points(1:13, apply(dms_ctmerge_shared_reorder_batcheffect_rm,2,function(x) x[order(-x)][50000]))
+lines(1:13, apply(dms_ctmerge_shared_reorder_batcheffect_rm,2,function(x) x[order(-x)][50000]))
 dev.off()
 #################################################
-'''
+
 
 #################################################
 ### merge Human and Mouse matrix
 # !!! Using mm10 esRP matrix without scaling or lm batcheffect removal gives better downstream clustering results !!! #
-dhs_dms_ctmerge_shared_reorder = rbind(dhs_ctmerge_shared_reorder, dms_ctmerge_shared_reorder)
+dhs_dms_ctmerge_shared_reorder = rbind(dhs_ctmerge_shared_reorder, dms_ctmerge_shared_reorder_batcheffect_rm)
 cCRE_id = c(paste0(rep('H', dim(dhs_ctmerge_shared_reorder)[1])), paste0(rep('M', dim(dms_ctmerge_shared_reorder)[1])))
 coordinates = rbind(dh[,c(1:6)], dm[,c(1:6)])
 ### Human & mouse cCRE PCA
@@ -201,16 +229,16 @@ for (KM_k in cluster_set){
 	KMPCA_iteration_KM_k = c(KMPCA_iteration_KM_k, length(unique(KMPCA_iteration[used_KM_k])) )
 	if (sum(used_KM_k)>1){
 		KMPCA_meansig_mat_meansig_mat = rbind(KMPCA_meansig_mat_meansig_mat, colMeans(KMPCA_meansig_mat[used_KM_k,]))
-		HM_count_mean = rbind(HM_count_mean, apply(HM_count[used_KM_k,], 2, sum))
+		#HM_count_mean = rbind(HM_count_mean, apply(HM_count[used_KM_k,], 2, sum))
 		cCRE_count_KMPCA_iteration_KM_k = c(cCRE_count_KMPCA_iteration_KM_k, sum(KMPCA_cCRE_num[used_KM_k]))
 	} else{
 		KMPCA_meansig_mat_meansig_mat = rbind(KMPCA_meansig_mat_meansig_mat, KMPCA_meansig_mat[used_KM_k,])
-		HM_count_mean = rbind(HM_count_mean, HM_count[used_KM_k,])
+		#HM_count_mean = rbind(HM_count_mean, HM_count[used_KM_k,])
 		cCRE_count_KMPCA_iteration_KM_k = c(cCRE_count_KMPCA_iteration_KM_k, KMPCA_cCRE_num[used_KM_k])
 	}
 }
 
-HM_count_mean_log2FC = log2((HM_count_mean[,1]+1)/(HM_count_mean[,2]/mean(HM_count_mean[,2])*mean(HM_count_mean[,1])+1))
+#HM_count_mean_log2FC = log2((HM_count_mean[,1]+1)/(HM_count_mean[,2]/mean(HM_count_mean[,2])*mean(HM_count_mean[,1])+1))
 #select_Kclusters = ((KMPCA_iteration_KM_k>=(check_reproducible*0.9)) * (abs(HM_count_mean_log2FC)<=1000))!=0
 pdf('KM.reproducible.p.hist.pdf')
 hist(KMPCA_iteration_KM_k/check_reproducible, breaks=30)
@@ -218,7 +246,7 @@ abline(v=0.75)
 box()
 dev.off()
 
-select_Kclusters = ((KMPCA_iteration_KM_k>=(check_reproducible*0.75)) * (abs(HM_count_mean_log2FC)<=1))!=0
+select_Kclusters = KMPCA_iteration_KM_k>=(check_reproducible*0.75)
 KMPCA_meansig_mat_meansig_mat_reproducible = KMPCA_meansig_mat_meansig_mat[select_Kclusters,]
 cCRE_count_KMPCA_iteration_KM_k_reproducible = cCRE_count_KMPCA_iteration_KM_k[select_Kclusters]
 colnames(KMPCA_meansig_mat_meansig_mat_reproducible) = colnames(dhs_ctmerge_shared_reorder)
@@ -243,12 +271,63 @@ colnames(QDA_train_data)[1] = 'Y'
 QDA_cluster_train_data_prior = cCRE_count_KMPCA_iteration_KM_k_reproducible / sum(cCRE_count_KMPCA_iteration_KM_k_reproducible)
 
 ### Train QDA
+set.seed(2019)
 library(MASS)
 QDA_model = qda(Y~., data=as.data.frame(QDA_train_data), prior=QDA_cluster_train_data_prior)
 #QDA_model = lda(Y~., data=as.data.frame(QDA_train_data), prior=QDA_cluster_train_data_prior)
 
 ### predict QDA id for each cCRE
 all_cCREs_prediction_Y = predict(QDA_model, newdata = as.data.frame(dhs_ctmerge_shared_reorder_pca$x))$class
+#################################################
+
+
+#################################################
+### iteratively select cross species clusters
+all_cCREs_prediction_Y_pre = all_cCREs_prediction_Y
+QDA_cluster_train_data_prior_pre = QDA_cluster_train_data_prior
+cross_species_thresh = 3
+all_cCREs_prediction_Y_H = all_cCREs_prediction_Y_pre[1:dim(dhs_ctmerge_shared_reorder)[1]]
+all_cCREs_prediction_Y_M = all_cCREs_prediction_Y_pre[(dim(dhs_ctmerge_shared_reorder)[1]+1):length(all_cCREs_prediction_Y_pre)]
+reproducible_state_count = cbind(table(all_cCREs_prediction_Y_H), table(all_cCREs_prediction_Y_M))
+reproducible_state_count_log2FC = log2(reproducible_state_count[,1]/(reproducible_state_count[,2]/sum(reproducible_state_count[,2])*sum(reproducible_state_count[,1])))
+print(c(0, length(reproducible_state_count_log2FC), sum(reproducible_state_count_log2FC>1)/length(reproducible_state_count_log2FC)))
+
+for (iter_i in 1:1){
+	print(iter_i)
+### check cross species ratio
+all_cCREs_prediction_Y_H = all_cCREs_prediction_Y_pre[1:dim(dhs_ctmerge_shared_reorder)[1]]
+all_cCREs_prediction_Y_M = all_cCREs_prediction_Y_pre[(dim(dhs_ctmerge_shared_reorder)[1]+1):length(all_cCREs_prediction_Y_pre)]
+reproducible_state_count = cbind(table(all_cCREs_prediction_Y_H), table(all_cCREs_prediction_Y_M))
+reproducible_state_count_log2FC = log2(reproducible_state_count[,1]/(reproducible_state_count[,2]/sum(reproducible_state_count[,2])*sum(reproducible_state_count[,1])))
+### identify cross species state
+cross_species_state = as.numeric(rownames(reproducible_state_count)[abs(reproducible_state_count_log2FC)<=cross_species_thresh])
+KMPCA_meansig_mat_meansig_mat_reproducible_cross_species = KMPCA_meansig_mat_meansig_mat_reproducible[abs(reproducible_state_count_log2FC)<=1,]
+
+### retrain QDA
+QDA_train_data_r2 = cbind(as.data.frame(all_cCREs_prediction_Y_pre), as.data.frame(dhs_ctmerge_shared_reorder_pca$x))
+colnames(QDA_train_data_r2)[1] = 'Y'
+QDA_train_data_r2 = QDA_train_data_r2[is.element(QDA_train_data_r2$Y, cross_species_state),]
+QDA_train_data_r2[,1] = as.factor(as.numeric(QDA_train_data_r2[,1]))
+
+set.seed(2019)
+QDA_cluster_train_data_prior_r2 = QDA_cluster_train_data_prior_pre[abs(reproducible_state_count_log2FC)<=cross_species_thresh]
+QDA_cluster_train_data_prior_r2 = QDA_cluster_train_data_prior_r2/sum(QDA_cluster_train_data_prior_r2)
+QDA_model_r2 = qda(Y~., data=QDA_train_data_r2, prior=QDA_cluster_train_data_prior_r2)
+
+### predict QDA id for each cCRE
+all_cCREs_prediction_Y = predict(QDA_model_r2, newdata = as.data.frame(dhs_ctmerge_shared_reorder_pca$x))$class
+### check cross species ratio
+all_cCREs_prediction_Y_H = all_cCREs_prediction_Y[1:dim(dhs_ctmerge_shared_reorder)[1]]
+all_cCREs_prediction_Y_M = all_cCREs_prediction_Y[(dim(dhs_ctmerge_shared_reorder)[1]+1):length(all_cCREs_prediction_Y)]
+reproducible_state_count_r2 = cbind(table(all_cCREs_prediction_Y_H), table(all_cCREs_prediction_Y_M))
+reproducible_state_count_log2FC_r2 = log2(reproducible_state_count_r2[,1]/(reproducible_state_count_r2[,2]/sum(reproducible_state_count_r2[,2])*sum(reproducible_state_count_r2[,1])))
+filter_ratio = sum(reproducible_state_count_log2FC_r2>cross_species_thresh)/length(reproducible_state_count_log2FC_r2)
+print(c(length(reproducible_state_count_log2FC_r2), filter_ratio))
+if (filter_ratio==0){break}
+filter_ratio_pre = filter_ratio
+all_cCREs_prediction_Y_pre = all_cCREs_prediction_Y
+QDA_cluster_train_data_prior_pre = QDA_cluster_train_data_prior_r2
+}
 #################################################
 
 
@@ -277,62 +356,33 @@ dhs_dms_ctmerge_shared_reorder_meansig_OD = dhs_dms_ctmerge_shared_reorder_means
 dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig_OD
 #dhs_dms_ctmerge_shared_reorder_meansig[dhs_dms_ctmerge_shared_reorder_meansig<0.01] = 0
 dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig + matrix(runif(dim(dhs_dms_ctmerge_shared_reorder_meansig)[1]*dim(dhs_dms_ctmerge_shared_reorder_meansig)[2], -0.01, 0.01), dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[2])
-
-hclust_cCRE = hclust(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))))
-#hclust_cCRE = hclust(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))))
-#hclust_cCRE = hclust( dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
-#hclust_cCRE_col = hclust(dist(t(dhs_dms_ctmerge_shared_reorder_meansig) ))
-#hclust_cCRE_col = hclust(dist(1-cosine((dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor((dhs_dms_ctmerge_shared_reorder_meansig))/2 ))
 #################################################
 
 
 #################################################
 ### meta-cluster
-'''
-hclust_cCRE_DTC = cutreeDynamic(hclust_cCRE, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig)))), method='hybrid')
-table(hclust_cCRE_DTC)
-### modified
-hclust_cCRE_DTC_modified = hclust_cCRE_DTC
-#hclust_cCRE_DTC_modified[hclust_cCRE_DTC==1] = 1
-#hclust_cCRE_DTC_modified[hclust_cCRE_DTC==3] = 1
-#hclust_cCRE_DTC_modified[hclust_cCRE_DTC==4] = 1
-#hclust_cCRE_DTC_modified[hclust_cCRE_DTC==7] = 1
-#hclust_cCRE_DTC_modified[hclust_cCRE_DTC==12] = 5
-set.seed(2019)
-dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-hclust_cCRE_DTC_modified = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=11)$cluster
-'''
-### Decide KM-K
-set.seed(2019)
-dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-KM_Jmet_KM_ratio_mat = c()
-for (iter_i in 1:30){
-	KM_Jmet_KM_ratio = c()
-for (ini_k in seq(2,20)){
-	print(ini_k)
-KM_Jmet_KM = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=ini_k)
-	KM_Jmet_KM_ratio = c(KM_Jmet_KM_ratio, KM_Jmet_KM$tot.withinss/KM_Jmet_KM$betweenss)
-}
-KM_Jmet_KM_ratio_mat = cbind(KM_Jmet_KM_ratio_mat, KM_Jmet_KM_ratio)
-}
-KM_Jmet_KM_ratio_mat = rowMeans(KM_Jmet_KM_ratio_mat)
-pdf("KM_Jmet_KM.determineK.pdf")
-plot(seq(2,20), KM_Jmet_KM_ratio_mat)
-lines(seq(2,20), KM_Jmet_KM_ratio_mat)
-abline(v=14)
+### check esRP cluster meansig distribution and determine noise limit
+pdf('dhs_dms_ctmerge_shared_reorder_meansig.hist.pdf')
+hist(log10(c(abs(dhs_dms_ctmerge_shared_reorder_meansig))), breaks=30, log='')
+noise_lim = 0.005
+abline(v=log10(noise_lim))
+box()
 dev.off()
-### Iteratively run Kmeans to get KM_by_KM_SameClu_count.reproducible
+### iteratively cluster QDA clusters
 set.seed(2019)
-K = 14
-iter_n = 30
-dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-### run Kmeans 30 times 
-KM_by_KM_SameClu_count = matrix(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_pca)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig_pca)[1])
+iter_n = 100
+### run hclust 100 times 
+KM_by_KM_SameClu_count = matrix(0, dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[1])
 for (iter_i in 1:iter_n){
 	print(iter_i)
-hclust_cCRE_DTC_modified_iter_i = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=K)$cluster
-for (Ki in 1:K){
-	used_rows = which(hclust_cCRE_DTC_modified_iter_i==Ki)
+noise_mat = matrix(runif(dim(dhs_dms_ctmerge_shared_reorder_meansig)[1]*dim(dhs_dms_ctmerge_shared_reorder_meansig)[2], -noise_lim, noise_lim), dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[2])
+dhs_dms_ctmerge_shared_reorder_meansig_noise = dhs_dms_ctmerge_shared_reorder_meansig + noise_mat
+hclust_cCRE = hclust(dist(1 - cor(t( cbind(rep(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_noise)[1]),dhs_dms_ctmerge_shared_reorder_meansig_noise) ))))
+#hclust_cCRE_DTC = cutree(hclust_cCRE, k=15)
+hclust_cCRE_DTC = cutreeDynamic(hclust_cCRE, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(1 - cor(t( cbind(rep(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_noise)[1]),dhs_dms_ctmerge_shared_reorder_meansig_noise) )))), method='hybrid')
+#print(table(hclust_cCRE_DTC))
+for (Ki in unique(hclust_cCRE_DTC)){
+	used_rows = which(hclust_cCRE_DTC==Ki)
 	for (i in 1:length(used_rows)){
 		for (j in 1:length(used_rows)){
 			KM_by_KM_SameClu_count[used_rows[i],used_rows[j]] = KM_by_KM_SameClu_count[used_rows[i],used_rows[j]]+1
@@ -341,8 +391,8 @@ for (Ki in 1:K){
 }
 }
 ### count the number runs each row-pair are in the same cluster
-colnames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig_pca)
-rownames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig_pca)
+colnames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig)
+rownames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig)
 ### plot count in same clusters 
 pdf('KM_by_KM_SameClu_count.reproducible.pdf', height=10, width=10)
 pheatmap(KM_by_KM_SameClu_count, cex = 1.5, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(KM_by_KM_SameClu_count), clustering_distance_cols=dist(KM_by_KM_SameClu_count))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
@@ -350,6 +400,8 @@ dev.off()
 ### Use cutreeDynamic to cluster KMs
 hclust_bySameClu_count = hclust(dist(KM_by_KM_SameClu_count), method='complete')
 hclust_cCRE_DTC = cutreeDynamic(hclust_bySameClu_count, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(KM_by_KM_SameClu_count)), method='hybrid')
+#hclust_cCRE_DTC = as.numeric(names(hclust_cCRE_DTC))
+#hclust_cCRE_DTC = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig))
 table(hclust_cCRE_DTC)
 #################################################
 
@@ -358,8 +410,8 @@ table(hclust_cCRE_DTC)
 #################################################
 ### get Joint meta-cluster ID
 hclust_cCRE_DTC_modified = hclust_cCRE_DTC
-all_cCREs_prediction_Y_Jmeta = all_cCREs_prediction_Y
-class(all_cCREs_prediction_Y_Jmeta) = 'numeric'
+#all_cCREs_prediction_Y_Jmeta = all_cCREs_prediction_Y
+all_cCREs_prediction_Y_Jmeta = as.numeric(as.character(all_cCREs_prediction_Y))
 KM_i = 0
 for (id_KM in unique(all_cCREs_prediction_Y)){
 	KM_i = KM_i+1
@@ -372,22 +424,16 @@ rownames(dhs_dms_ctmerge_shared_reorder_meansig) = row_names_combined
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_H) = row_names_combined
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_M) = row_names_combined
 
-pdf('KMPCA.Joint.cluster.reproducible.pdf', height=10)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pdf('KMPCA.Joint.cluster.reproducible.pdf', height=12)
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible_H.pdf', height=10)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_H[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_H[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible_M.pdf', height=10)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_M[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
-dev.off()
-
-png('cCRE_id_HM_count.png')
-plot_lim = c(5, 50000)
-plot(cCRE_id_HM_count[,1],cCRE_id_HM_count[,2]/mean(cCRE_id_HM_count[,2])*mean(cCRE_id_HM_count[,1]), log='xy', xlim = plot_lim, ylim=plot_lim, xlab='H', ylab='M')
-abline(0,1)
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_M[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
 dev.off()
 
 ### get Jmet meansignal mat
@@ -396,12 +442,20 @@ for (i in unique(hclust_cCRE_DTC_modified)){
 if (sum(hclust_cCRE_DTC_modified==i)>1){dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig = rbind(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig, colMeans(dhs_dms_ctmerge_shared_reorder_meansig[hclust_cCRE_DTC_modified==i,]))}
 if (sum(hclust_cCRE_DTC_modified==i)==1){dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig = rbind(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig, dhs_dms_ctmerge_shared_reorder_meansig[hclust_cCRE_DTC_modified==i,])}
 }
+
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig) = unique(hclust_cCRE_DTC_modified)
 ###
 Jmet_order = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)[hclust(dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))$order])
-pdf('KMPCA.Joint.cluster.reproducible.Jmet.pdf', height=5)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig, cluster_col=T, cluster_rows=T, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pdf('KMPCA.Joint.cluster.reproducible.Jmet.pdf', height=6)
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig, cluster_col=T, cluster_rows=T, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
+
+png('cCRE_id_HM_count.png')
+plot_lim = c(5, 100000)
+plot(cCRE_id_HM_count[,1],cCRE_id_HM_count[,2]/mean(cCRE_id_HM_count[,2])*mean(cCRE_id_HM_count[,1]), log='xy', xlim = plot_lim, ylim=plot_lim, xlab='H', ylab='M')
+abline(0,1)
+dev.off()
+
 #################################################
 
 
@@ -416,31 +470,6 @@ write.table(dm_with_JointClusterID_mat, 'S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.wi
 ###### ct esRP mat for RNA correlation analysis
 dh_with_JointClusterID_mat_ct = cbind(apply(cbind(dh[,1], as.character(dh[,2]), as.character(dh[,3])) ,1, function(x) paste(x, collapse='_')), dh[,c(1:6)], all_cCREs_prediction_Y_Jmeta[H_rows], dhs_ctmerge_shared_reorder)
 dm_with_JointClusterID_mat_ct = cbind(apply(cbind(dm[,1], as.character(dm[,2]), as.character(dm[,3])) ,1, function(x) paste(x, collapse='_')), dm[,c(1:6)], all_cCREs_prediction_Y_Jmeta[M_rows], dms_ctmerge_shared_reorder)
-###### check JMeta number
-### hg38
-JMeta_vs_KM_H = t(apply(cbind(rownames(dhs_dms_ctmerge_shared_reorder_meansig_H)), 1, function(x) as.numeric(unlist(strsplit(x, ':'))) ))
-JMeta_vs_KM_M = t(apply(cbind(rownames(dhs_dms_ctmerge_shared_reorder_meansig_M)), 1, function(x) as.numeric(unlist(strsplit(x, ':'))) ))
-JMeta_count_H = c()
-JMeta_count_M = c()
-for (JMeta_i in unique(JMeta_vs_KM_H[,1])){
-	table_vec_names = as.numeric(names(table(dh_with_JointClusterID_mat$J_meta)))
-	JMeta_vs_KM_H_i = JMeta_vs_KM_H[is.element(JMeta_vs_KM_H[,1], JMeta_i),1]
-	JMeta_vs_KM_M_i = JMeta_vs_KM_M[is.element(JMeta_vs_KM_M[,1], JMeta_i),1]
-	print(c(JMeta_i, JMeta_vs_KM_H_i))
-	print(c(JMeta_i, JMeta_vs_KM_M_i))
-	JMeta_count_H = c(JMeta_count_H, sum(table(dh_with_JointClusterID_mat$J_meta)[is.element(table_vec_names, JMeta_vs_KM_H_i)]))
-	JMeta_count_M = c(JMeta_count_M, sum(table(dm_with_JointClusterID_mat$J_meta)[is.element(table_vec_names, JMeta_vs_KM_M_i)]))
-}
-JMeta_count_H = cbind(unique(JMeta_vs_KM_H[,1]), JMeta_count_H)
-JMeta_count_M = cbind(unique(JMeta_vs_KM_M[,1]), JMeta_count_M)
-###
-JMeta_count_HM = cbind(JMeta_count_H[,2], JMeta_count_M[,2])
-JMeta_count_HM[,2] = JMeta_count_HM[,2]/mean(JMeta_count_HM[,2])*mean(JMeta_count_HM[,1])
-rownames(JMeta_count_HM) = JMeta_count_H[,1]
-colnames(JMeta_count_HM) = c('Human','Mouse')
-pdf('KMPCA.Joint.cluster.reproducible.Jmet.cCRE_count.pdf', height=5,width=3)
-pheatmap(log10(JMeta_count_HM), cluster_col=F, cluster_rows=T, cex=1.5, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
-dev.off()
 #################################################
 
 
@@ -694,7 +723,7 @@ for (coli in used_order){
 colnames(meta_cluster_mat_plot) = used_order
 rownames(meta_cluster_mat_plot) = rownames(meta_cluster_mat)
 meta_cluster_mat_plot = meta_cluster_mat_plot[order(meta_cluster_mat_log2_km$cluster),]
-pheatmap(log2(t(meta_cluster_mat_plot)+1), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=F, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
+pheatmap(log2(t(meta_cluster_mat_plot)+1), cex=2, cluster_col=F, cluster_rows=T, show_rownames=T, show_colnames=F, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
 dev.off()
 png('Gene_by_JMeta.Joint.cluster_H.png', width = 1000, height = 600)
 meta_cluster_mat_plot_H = c()
@@ -730,18 +759,21 @@ used_id = sample(length(A_gene_enrich), 10000)
 png(paste0('Gene_enrich.heatscatterplot.',i,'.png'))
 #heatscatter(A_gene_enrich[used_id], M_gene_enrich[used_id], ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich))))
 #abline(h=0)
+plot_lim_i = c(min(c(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)), max(c(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)))
 print(cor(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec))
-heatscatter(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)
+heatscatter(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec, xlim=plot_lim_i, ylim=plot_lim_i)
 abline(0,1)
 dev.off()
 }
+
 png('Gene_enrich.MAplot.png')
 meta_cluster_mat_plot_H_vec = as.numeric(c(meta_cluster_mat_plot_H))
 meta_cluster_mat_plot_M_vec = as.numeric(c(meta_cluster_mat_plot_M))
 enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
 #meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec * enrich_lm_adj$coefficients[2] + enrich_lm_adj$coefficients[1]
+
 meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec / mean(meta_cluster_mat_plot_M_vec) * mean(meta_cluster_mat_plot_H_vec) 
-meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec
+
 M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+0.1)/(meta_cluster_mat_plot_M_vec_adj+0.1))
 A_gene_enrich = log2(meta_cluster_mat_plot_H_vec*meta_cluster_mat_plot_M_vec_adj)
 used_id = sample(length(A_gene_enrich), 10000)
@@ -1187,7 +1219,7 @@ colnames(Jmet_i_SFNP_enrich) = SFNP_ID_order
 rownames(Jmet_i_SFNP_enrich) = used_order
 ###
 pdf('Jmet_i_SFNP_count.pdf', width=3, height=5)
-pheatmap(log10(Jmet_i_SFNP_count), cluster_cols=F, cluster_rows=F, cex=1.5)
+pheatmap(log10(Jmet_i_SFNP_count+1), cluster_cols=F, cluster_rows=F, cex=1.5)
 dev.off()
 pdf('Jmet_i_SFNP_enrich.pdf', width=3, height=5)
 pheatmap(log10(Jmet_i_SFNP_enrich), cluster_cols=F, cluster_rows=F, cex=1.5)

@@ -218,16 +218,29 @@ abline(v=0.75)
 box()
 dev.off()
 
+### plot 2 heatmap (1) reproducible and cross species (2) reproducible
 select_Kclusters = ((KMPCA_iteration_KM_k>=(check_reproducible*0.75)) * (abs(HM_count_mean_log2FC)<=1))!=0
 KMPCA_meansig_mat_meansig_mat_reproducible = KMPCA_meansig_mat_meansig_mat[select_Kclusters,]
 cCRE_count_KMPCA_iteration_KM_k_reproducible = cCRE_count_KMPCA_iteration_KM_k[select_Kclusters]
 colnames(KMPCA_meansig_mat_meansig_mat_reproducible) = colnames(dhs_ctmerge_shared_reorder)
 dim(KMPCA_meansig_mat_meansig_mat_reproducible)
 
-pdf('KMPCA.Joint.reproducible.cluster.pdf', height=10, width=6)
+pdf('KMPCA.Joint.reproducible.cross_spec.cluster.pdf', height=10, width=6)
 pheatmap(KMPCA_meansig_mat_meansig_mat_reproducible, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(1-cor(t(KMPCA_meansig_mat_meansig_mat_reproducible))))
-#pheatmap(KMPCA_meansig_mat_meansig_mat_reproducible, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(1-cosine(t(KMPCA_meansig_mat_meansig_mat_reproducible))))
-#pheatmap(KMPCA_meansig_mat_meansig_mat_reproducible, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(1-cosine(t(KMPCA_meansig_mat_meansig_mat_reproducible))/2 - cor(t(KMPCA_meansig_mat_meansig_mat_reproducible))/2 ) )
+dev.off()
+
+###
+select_Kclusters1 = ((KMPCA_iteration_KM_k>=(check_reproducible*0.75)) )!=0
+KMPCA_meansig_mat_meansig_mat_reproducible1 = KMPCA_meansig_mat_meansig_mat[select_Kclusters1,]
+cCRE_count_KMPCA_iteration_KM_k_reproducible1 = cCRE_count_KMPCA_iteration_KM_k[select_Kclusters1]
+colnames(KMPCA_meansig_mat_meansig_mat_reproducible1) = colnames(dhs_ctmerge_shared_reorder)
+dim(KMPCA_meansig_mat_meansig_mat_reproducible1)
+
+pdf('KMPCA.Joint.reproducible.cluster.pdf', height=12, width=6)
+plot_color_lim = 0.3
+breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+pheatmap(KMPCA_meansig_mat_meansig_mat_reproducible1, cluster_col=T, cluster_rows=T, cex = 1.5, color=my_colorbar, breaks = breaksList, clustering_distance_rows=dist(1-cor(t(KMPCA_meansig_mat_meansig_mat_reproducible1))), clustering_distance_cols=dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)))
 dev.off()
 #################################################
 
@@ -302,37 +315,29 @@ set.seed(2019)
 dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
 hclust_cCRE_DTC_modified = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=11)$cluster
 '''
-### Decide KM-K
+### Get reproducible Jmeta by hclust with cutreeDynamic with noise mat
 set.seed(2019)
-dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-KM_Jmet_KM_ratio_mat = c()
-for (iter_i in 1:30){
-	KM_Jmet_KM_ratio = c()
-for (ini_k in seq(2,20)){
-	print(ini_k)
-KM_Jmet_KM = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=ini_k)
-	KM_Jmet_KM_ratio = c(KM_Jmet_KM_ratio, KM_Jmet_KM$tot.withinss/KM_Jmet_KM$betweenss)
-}
-KM_Jmet_KM_ratio_mat = cbind(KM_Jmet_KM_ratio_mat, KM_Jmet_KM_ratio)
-}
-KM_Jmet_KM_ratio_mat = rowMeans(KM_Jmet_KM_ratio_mat)
-pdf("KM_Jmet_KM.determineK.pdf")
-plot(seq(2,20), KM_Jmet_KM_ratio_mat)
-lines(seq(2,20), KM_Jmet_KM_ratio_mat)
-abline(v=14)
+pdf('dhs_dms_ctmerge_shared_reorder_meansig.hist.pdf')
+hist(log10(c(abs(dhs_dms_ctmerge_shared_reorder_meansig))), breaks=30, log='')
+noise_lim = 0.003
+abline(v=log10(noise_lim))
+box()
 dev.off()
-### Iteratively run Kmeans to get KM_by_KM_SameClu_count.reproducible
+### iteratively cluster QDA clusters
 set.seed(2019)
-K = 14
-iter_n = 30
-dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
-### run Kmeans 30 times 
-KM_by_KM_SameClu_count = matrix(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_pca)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig_pca)[1])
+iter_n = 100
+### run hclust 100 times 
+KM_by_KM_SameClu_count = matrix(0, dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[1])
 for (iter_i in 1:iter_n){
 	print(iter_i)
-hclust_cCRE_DTC_modified_iter_i = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=K)$cluster
-for (Ki in 1:K){
-	used_rows = which(hclust_cCRE_DTC_modified_iter_i==Ki)
+noise_mat = matrix(runif(dim(dhs_dms_ctmerge_shared_reorder_meansig)[1]*dim(dhs_dms_ctmerge_shared_reorder_meansig)[2], -noise_lim, noise_lim), dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[2])
+dhs_dms_ctmerge_shared_reorder_meansig_noise = dhs_dms_ctmerge_shared_reorder_meansig + noise_mat
+hclust_cCRE = hclust(dist(1 - cor(t( cbind(rep(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_noise)[1]),dhs_dms_ctmerge_shared_reorder_meansig_noise) ))))
+#hclust_cCRE_DTC = cutree(hclust_cCRE, k=15)
+hclust_cCRE_DTC = cutreeDynamic(hclust_cCRE, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(1 - cor(t( cbind(rep(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_noise)[1]),dhs_dms_ctmerge_shared_reorder_meansig_noise) )))), method='hybrid')
+#print(table(hclust_cCRE_DTC))
+for (Ki in unique(hclust_cCRE_DTC)){
+	used_rows = which(hclust_cCRE_DTC==Ki)
 	for (i in 1:length(used_rows)){
 		for (j in 1:length(used_rows)){
 			KM_by_KM_SameClu_count[used_rows[i],used_rows[j]] = KM_by_KM_SameClu_count[used_rows[i],used_rows[j]]+1
@@ -341,8 +346,8 @@ for (Ki in 1:K){
 }
 }
 ### count the number runs each row-pair are in the same cluster
-colnames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig_pca)
-rownames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig_pca)
+colnames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig)
+rownames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig)
 ### plot count in same clusters 
 pdf('KM_by_KM_SameClu_count.reproducible.pdf', height=10, width=10)
 pheatmap(KM_by_KM_SameClu_count, cex = 1.5, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(KM_by_KM_SameClu_count), clustering_distance_cols=dist(KM_by_KM_SameClu_count))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
@@ -350,6 +355,8 @@ dev.off()
 ### Use cutreeDynamic to cluster KMs
 hclust_bySameClu_count = hclust(dist(KM_by_KM_SameClu_count), method='complete')
 hclust_cCRE_DTC = cutreeDynamic(hclust_bySameClu_count, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(KM_by_KM_SameClu_count)), method='hybrid')
+#hclust_cCRE_DTC = as.numeric(names(hclust_cCRE_DTC))
+#hclust_cCRE_DTC = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig))
 table(hclust_cCRE_DTC)
 #################################################
 
@@ -373,7 +380,10 @@ rownames(dhs_dms_ctmerge_shared_reorder_meansig_H) = row_names_combined
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_M) = row_names_combined
 
 pdf('KMPCA.Joint.cluster.reproducible.pdf', height=10)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+plot_color_lim = 0.3
+breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], color=my_colorbar, breaks = breaksList, cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible_H.pdf', height=10)
@@ -400,7 +410,12 @@ rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig) = unique(hclust_cC
 ###
 Jmet_order = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)[hclust(dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))$order])
 pdf('KMPCA.Joint.cluster.reproducible.Jmet.pdf', height=5)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig, cluster_col=T, cluster_rows=T, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot = dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig
+#dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot[dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig>0.3] = 0.3
+plot_color_lim = 0.2
+breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 #################################################
 
@@ -722,16 +737,18 @@ dev.off()
 for (i in 1:dim(meta_cluster_mat_plot_H)[2]){
 meta_cluster_mat_plot_H_vec = as.numeric(c(meta_cluster_mat_plot_H[,i]))
 meta_cluster_mat_plot_M_vec = as.numeric(c(meta_cluster_mat_plot_M[,i]))
-enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
-meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec * enrich_lm_adj$coefficients[2] + enrich_lm_adj$coefficients[1]
-M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+0.1)/(meta_cluster_mat_plot_M_vec_adj+0.1))
-A_gene_enrich = log2(meta_cluster_mat_plot_H_vec*meta_cluster_mat_plot_M_vec_adj)
-used_id = sample(length(A_gene_enrich), 10000)
+#enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec * enrich_lm_adj$coefficients[2] + enrich_lm_adj$coefficients[1]
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec
+#M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+0.1)/(meta_cluster_mat_plot_M_vec_adj+0.1))
+#A_gene_enrich = log2(meta_cluster_mat_plot_H_vec*meta_cluster_mat_plot_M_vec_adj)
+used_id = sample(length(meta_cluster_mat_plot_H_vec), 10000)
 png(paste0('Gene_enrich.heatscatterplot.',i,'.png'))
 #heatscatter(A_gene_enrich[used_id], M_gene_enrich[used_id], ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich))))
 #abline(h=0)
+plot_lim_i = c(min(c(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)), max(c(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)))
 print(cor(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec))
-heatscatter(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)
+heatscatter(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec, xlim=plot_lim_i, ylim=plot_lim_i)
 abline(0,1)
 dev.off()
 }
@@ -740,10 +757,9 @@ meta_cluster_mat_plot_H_vec = as.numeric(c(meta_cluster_mat_plot_H))
 meta_cluster_mat_plot_M_vec = as.numeric(c(meta_cluster_mat_plot_M))
 enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
 #meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec * enrich_lm_adj$coefficients[2] + enrich_lm_adj$coefficients[1]
-meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec / mean(meta_cluster_mat_plot_M_vec) * mean(meta_cluster_mat_plot_H_vec) 
-meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec
-M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+0.1)/(meta_cluster_mat_plot_M_vec_adj+0.1))
-A_gene_enrich = log2(meta_cluster_mat_plot_H_vec*meta_cluster_mat_plot_M_vec_adj)
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec / mean(meta_cluster_mat_plot_M_vec) * mean(meta_cluster_mat_plot_H_vec) 
+M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+0.1)/(meta_cluster_mat_plot_M_vec+0.1))
+A_gene_enrich = log2(meta_cluster_mat_plot_H_vec*meta_cluster_mat_plot_M_vec)
 used_id = sample(length(A_gene_enrich), 10000)
 heatscatter(A_gene_enrich[used_id], M_gene_enrich[used_id], ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich))), cex.axis=2)
 abline(h=0)
@@ -1116,6 +1132,7 @@ used_rows = apply(score_mat, 1, sum)>-10
 wilcox.test(score_mat[used_rows,1], score_mat[used_rows,4], alternative='greater', paired=T)
 wilcox.test(score_mat[used_rows,2], score_mat[used_rows,4], alternative='greater', paired=T)
 wilcox.test(score_mat[used_rows,3], score_mat[used_rows,4], alternative='greater', paired=T)
+wilcox.test(score_mat[used_rows,4], score_mat[used_rows,5], alternative='greater', paired=T)
 wilcox.test(score_mat[used_rows,2], score_mat[used_rows,3], alternative='greater', paired=T)
 wilcox.test(score_mat[used_rows,3], score_mat[used_rows,5], alternative='greater', paired=T)
 ### cor boxplot
@@ -1152,11 +1169,11 @@ write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAco
 table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$SFNID)
 # hg38
 #    F      N      P      S     SF 
-# 53638 125967  15275  26034  13848
+# 54013 125592  15275  26972  12910
 table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID)
 # mm10
 #    F     N     P     S    SF 
-# 26630 64980 12324 26961 14214
+# 25528 66082 12324 27808 13367 
 #################################################
 
 
@@ -1202,6 +1219,8 @@ hg38_gene_locus = read.table('/Users/guanjuexiang/Documents/projects/analysis/08
 hg38_gene_locus_TSS = hg38_gene_locus
 hg38_gene_locus_TSS[hg38_gene_locus_TSS[,4]=='+',3] = hg38_gene_locus_TSS[hg38_gene_locus_TSS[,4]=='+',2]+1
 hg38_gene_locus_TSS[hg38_gene_locus_TSS[,4]=='-',2] = hg38_gene_locus_TSS[hg38_gene_locus_TSS[,4]=='-',3]-1
+### modify CSF1R gene locus
+hg38_gene_locus_TSS[hg38_gene_locus_TSS[,5]=='CSF1R',c(2:3)] = c(150086553, 150086554)
 ### add TSS position
 hg38_SFN_loops = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat
 hg38_SFN_loops_TSS = hg38_SFN_loops[,1:3]
