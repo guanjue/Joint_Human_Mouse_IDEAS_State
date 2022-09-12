@@ -521,6 +521,9 @@ return(Jmet)
 
 #################################################
 ### read gene pairs
+### replace CSF1R gene position 
+### from chr5    150053291       150113372       -       CSF1R
+### To chr5    150053291       150136554       -       CSF1R
 hg38_gene = read.table('/Users/guanjuexiang/Documents/projects/analysis/0813_human_mouse_state_compare_heatmap/hg38.gene.bed', header=F, sep='\t')
 mm10_gene = read.table('/Users/guanjuexiang/Documents/projects/analysis/0813_human_mouse_state_compare_heatmap/mm10.gene.bed', header=F, sep='\t')
 ### mm10
@@ -770,21 +773,31 @@ dev.off()
 
 #################################################
 ### prepare SFN files
-bash1 = 'mkdir /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/'
+bash1 = 'mkdir -p /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/'
 system(bash1)
 ### get cCRE with H/MIDs
-bash2 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_s.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.bed'
-system(bash2)
-bash3 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $2,$3,$4,$1}\' | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_sf_s.withMID.bed'
-system(bash3)
-bash4 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_s.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.bed'
-system(bash4)
-bash5 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $2,$3,$4,$1}\' | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_sf_s.withHID.bed'
-system(bash5)
+bash2a = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_s.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.bed'
+system(bash2a)
+bash2b = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_sf.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_s.bed /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_n.bed | sort -k1,1 -k2,2n > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.bed'
+system(bash2b)
+### for hg38
+bash3a = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_sf.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $2,$3,$4,$1}\' > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/hg38_sf_s.withMID.bed'
+system(bash3a)
+bash3b = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,"X"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/hg38_sf_s.withMID.bed'
+system(bash3b)
+bash3c = 'sort -k1,1 -k2,2n /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/hg38_sf_s.withMID.bed > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/hg38_sf_s.withMID.sort.bed'
+system(bash3c)
+### for mm10
+bash5a = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_sf.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $2,$3,$4,$1}\' > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mm10_sf_s.withHID.bed'
+system(bash5a)
+bash5b = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,"X"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mm10_sf_s.withHID.bed'
+system(bash5b)
+bash5c = 'sort -k1,1 -k2,2n /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mm10_sf_s.withHID.bed > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mm10_sf_s.withHID.sort.bed'
+system(bash5c)
 ### add both H & M IDs
-bash6 = 'bedtools map -a /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.bed -b /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_hg38_sf_s.withMID.bed -c 4 -o concat -null NA > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.with_Mouse_S_MID.bed'
+bash6 = 'bedtools map -a /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.bed -b /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/hg38_sf_s.withMID.sort.bed -c 4 -o concat -null NA > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.with_Mouse_S_MID.bed'
 system(bash6)
-bash7 = 'bedtools map -a /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.bed -b /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_mm10_sf_s.withHID.bed -c 4 -o concat -null NA > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.with_Human_S_HID.bed'
+bash7 = 'bedtools map -a /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.bed -b /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mm10_sf_s.withHID.sort.bed -c 4 -o concat -null NA > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withMID.with_Human_S_HID.bed'
 system(bash7)
 #################################################
 
@@ -841,18 +854,20 @@ cCRE_H_Jmeta_withMSF_hg38_regions = read.table('cCRE.Gene50KB.hg38.SF_S.bed', he
 cCRE_M_Jmeta_withMSF_mm10_regions = read.table('cCRE.Gene50KB.mm10.withMID.bed', header=F)
 colnames(cCRE_H_Jmeta_withMSF_hg38_regions) = c('chr','start','end','JmetID','F01','GeneName','HID','MID')
 cCRE_H_Jmeta_withMSF_hg38_regions_S = rep(0, dim(cCRE_H_Jmeta_withMSF_hg38_regions)[1])
-all_genes_hg38 = unique(cCRE_H_Jmeta_withMSF_hg38_regions[,6])
-kkk = 0
-for (gene_i in all_genes_hg38){
-	if (kkk%%1000==0){print(kkk)}
-	kkk = kkk+1
-	### get mm10 cCRE MID in gene_i
-	cCRE_M_Jmeta_withMSF_mm10_regions_gene_i = cCRE_M_Jmeta_withMSF_mm10_regions[cCRE_M_Jmeta_withMSF_mm10_regions[,6]==gene_i,7]
-	### get hg38 cCRE MID in gene_i
-	cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i = cCRE_H_Jmeta_withMSF_hg38_regions[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i,8]
-	### define the S cCRE 
-	cCRE_H_Jmeta_withMSF_hg38_regions_S[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i] = is.element(cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i, cCRE_M_Jmeta_withMSF_mm10_regions_gene_i)*1
-}
+#all_genes_hg38 = unique(cCRE_H_Jmeta_withMSF_hg38_regions[,6])
+#kkk = 0
+#for (gene_i in all_genes_hg38){
+#	if (kkk%%1000==0){print(kkk)}
+#	kkk = kkk+1
+#	### get mm10 cCRE MID in gene_i
+#	cCRE_M_Jmeta_withMSF_mm10_regions_gene_i = cCRE_M_Jmeta_withMSF_mm10_regions[cCRE_M_Jmeta_withMSF_mm10_regions[,6]==gene_i,7]
+#	### get hg38 cCRE MID in gene_i
+#	cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i = cCRE_H_Jmeta_withMSF_hg38_regions[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i,8]
+#	### define the S cCRE 
+#	cCRE_H_Jmeta_withMSF_hg38_regions_S[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i] = is.element(cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i, cCRE_M_Jmeta_withMSF_mm10_regions_gene_i)*1
+#}
+###
+cCRE_H_Jmeta_withMSF_hg38_regions_S = (!is.na(cCRE_H_Jmeta_withMSF_hg38_regions$MID))*1
 ### add GeneS01 binary label
 cCRE_H_Jmeta_withMSF_hg38_regions_set1 = cbind(cCRE_H_Jmeta_withMSF_hg38_regions, cCRE_H_Jmeta_withMSF_hg38_regions_S)
 colnames(cCRE_H_Jmeta_withMSF_hg38_regions_set1) = c(colnames(cCRE_H_Jmeta_withMSF_hg38_regions), 'GeneS01')
@@ -863,18 +878,20 @@ cCRE_M_Jmeta_withHSF_mm10_regions = read.table('cCRE.Gene50KB.mm10.SF_S.bed', he
 cCRE_H_Jmeta_withHSF_hg38_regions = read.table('cCRE.Gene50KB.hg38.withMID.bed', header=F)
 colnames(cCRE_M_Jmeta_withHSF_mm10_regions) = c('chr','start','end','JmetID','F01','GeneName','MID','HID')
 cCRE_M_Jmeta_withHSF_mm10_regions_S = rep(0, dim(cCRE_M_Jmeta_withHSF_mm10_regions)[1])
-all_genes_hg38 = unique(cCRE_M_Jmeta_withHSF_mm10_regions[,6])
-kkk = 0
-for (gene_i in all_genes_hg38){
-	if (kkk%%1000==0){print(kkk)}
-	kkk = kkk+1
-	### get mm10 cCRE MID in gene_i
-	cCRE_H_Jmeta_withHSF_hg38_regions_gene_i = cCRE_H_Jmeta_withHSF_hg38_regions[cCRE_H_Jmeta_withHSF_hg38_regions[,6]==gene_i,7]
-	### get hg38 cCRE MID in gene_i
-	cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i = cCRE_M_Jmeta_withHSF_mm10_regions[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i,8]
-	### define the S cCRE 
-	cCRE_M_Jmeta_withHSF_mm10_regions_S[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i] = is.element(cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i, cCRE_H_Jmeta_withHSF_hg38_regions_gene_i)*1
-}
+#all_genes_hg38 = unique(cCRE_M_Jmeta_withHSF_mm10_regions[,6])
+#kkk = 0
+#for (gene_i in all_genes_hg38){
+#	if (kkk%%1000==0){print(kkk)}
+#	kkk = kkk+1
+#	### get mm10 cCRE MID in gene_i
+#	cCRE_H_Jmeta_withHSF_hg38_regions_gene_i = cCRE_H_Jmeta_withHSF_hg38_regions[cCRE_H_Jmeta_withHSF_hg38_regions[,6]==gene_i,7]
+#	### get hg38 cCRE MID in gene_i
+#	cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i = cCRE_M_Jmeta_withHSF_mm10_regions[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i,8]
+#	### define the S cCRE 
+#	cCRE_M_Jmeta_withHSF_mm10_regions_S[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i] = is.element(cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i, cCRE_H_Jmeta_withHSF_hg38_regions_gene_i)*1
+#}
+###
+cCRE_M_Jmeta_withHSF_mm10_regions_S = (!is.na(cCRE_M_Jmeta_withHSF_mm10_regions$HID))*1
 ### add GeneS01 binary label
 cCRE_M_Jmeta_withHSF_mm10_regions_set1 = cbind(cCRE_M_Jmeta_withHSF_mm10_regions, cCRE_M_Jmeta_withHSF_mm10_regions_S)
 colnames(cCRE_M_Jmeta_withHSF_mm10_regions_set1) = c(colnames(cCRE_M_Jmeta_withHSF_mm10_regions), 'GeneS01')
@@ -1065,6 +1082,9 @@ cCRE_gene_genes = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38
 RNA_mat_genes = rownames(RNA_mat_ct_ave_shared_logqtnorm_used)
 cCRE_PKID = dh_with_JointClusterID_mat_ct[,1]
 cCRE_esRPmat = dh_with_JointClusterID_mat_ct[,-c(1:8)]
+set.seed(2019)
+cCRE_esRPmat_withNoise = cCRE_esRPmat + matrix(runif(dim(cCRE_esRPmat)[1]*dim(cCRE_esRPmat)[2], -0.0001, 0.0001), dim(cCRE_esRPmat)[1], dim(cCRE_esRPmat)[2])
+
 ###
 ptm <- proc.time()
 cCRE_gene_esRP_RNA_cor = rep(-100,dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_withPKID)[1])
@@ -1073,7 +1093,7 @@ for (i in 1:dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_w
 	gene_i = cCRE_gene_genes[i]
 	cCRE_i = cCRE_gene_PKID[i]
 	if (is.element(gene_i, RNA_mat_genes)){
-	cCRE_esRP_i = cCRE_esRPmat[cCRE_PKID==cCRE_i,]
+	cCRE_esRP_i = cCRE_esRPmat_withNoise[cCRE_PKID==cCRE_i,]
 	RNA_tpm_i = RNA_mat_ct_ave_shared_logqtnorm_used[RNA_mat_genes==gene_i,]
 	if (!is.null(dim(RNA_tpm_i))){
 			cCRE_gene_esRP_RNA_cor[i] = cor(as.numeric(cCRE_esRP_i), RNA_tpm_i[1,])
@@ -1095,10 +1115,12 @@ exclude_TSS = (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RN
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) | (!exclude_TSS)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'SF'
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) | (!exclude_TSS)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==0) ] = 'F'
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==0) & (exclude_TSS)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'S'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'SF'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==0) ] = 'F'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID!='X') ] = 'SFJ'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID=='X') ] = 'SJ'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==0) ] = 'J'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'S'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[!exclude_TSS] = 'P'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID!='X')] = 'SF'
+#cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[!exclude_TSS] = 'TSS'
 ###
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat = cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor, cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN)
 colnames(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat)[dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat)[2]] = 'SFNID'
@@ -1108,7 +1130,7 @@ cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[cC
 meta_cluster_mat_log2_df[meta_cluster_mat_log2_df$shared_genes=='CSF1R',]
 write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat, 'cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.GeneKMID.RNAcor.SFNID.bed', quote=F, sep='\t', col.names=T, row.names=F)
 ### Gene cor of 'SF','F','S','N' of each gene
-SFN_ID_list = c('P', 'SF','F','S','N')
+SFN_ID_list = c('SFJ','SF','SJ','S','J','N')
 score_mat = matrix(0, nrow = length(unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$GeneName)), ncol=length(SFN_ID_list))
 k = 0
 for (gene_i in unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$GeneName)){
@@ -1125,41 +1147,99 @@ for (gene_i in unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_
 	}
 	score_mat[k,] = score_mat_i
 }
-### 
+
+
+
+### cor boxplot
 colnames(score_mat) = SFN_ID_list
 score_mat_abs = abs(score_mat)
 used_rows = apply(score_mat, 1, sum)>-10
-wilcox.test(score_mat[used_rows,1], score_mat[used_rows,4], alternative='greater', paired=T)
-wilcox.test(score_mat[used_rows,2], score_mat[used_rows,4], alternative='greater', paired=T)
-wilcox.test(score_mat[used_rows,3], score_mat[used_rows,4], alternative='greater', paired=T)
-wilcox.test(score_mat[used_rows,4], score_mat[used_rows,5], alternative='greater', paired=T)
-wilcox.test(score_mat[used_rows,2], score_mat[used_rows,3], alternative='greater', paired=T)
-wilcox.test(score_mat[used_rows,3], score_mat[used_rows,5], alternative='greater', paired=T)
 ### cor boxplot
-pdf('corabs_SFN_mat.box.pdf')
+score_mat11 = score_mat
+score_mat11[score_mat11==-100]=NA
+#score_mat11 = abs(score_mat11)
+wilcox.test(score_mat11[,1], score_mat11[,2], alternative='greater', paired=T)
+wilcox.test(score_mat11[,3], score_mat11[,4], alternative='greater', paired=T)
+wilcox.test(score_mat11[,5], score_mat11[,6], alternative='greater', paired=T)
+	Wilcoxon signed rank test with continuity correction
+
+data:  score_mat11[, 1] and score_mat11[, 2]
+V = 7404440, p-value = 0.001
+alternative hypothesis: true location shift is greater than 0
+
+
+	Wilcoxon signed rank test with continuity correction
+
+data:  score_mat11[, 3] and score_mat11[, 4]
+V = 20690241, p-value = 0.000000002
+alternative hypothesis: true location shift is greater than 0
+
+
+	Wilcoxon signed rank test with continuity correction
+
+data:  score_mat11[, 5] and score_mat11[, 6]
+V = 14497091, p-value = 0.000000000005
+alternative hypothesis: true location shift is greater than 0
+
+
+pdf('corabs_SFNJ_mat.box.pdf',width=8)
 #boxplot(score_mat[used_rows,]-score_mat[used_rows,4], cex.axis=2)
-boxplot(score_mat[used_rows,], cex.axis=2, ylim=c(-1,1))
-points(1:dim(score_mat)[2], colMeans(score_mat[used_rows,], na.rm=T))
-lines(1:dim(score_mat)[2], colMeans(score_mat[used_rows,], na.rm=T))
+boxplot(score_mat11, cex.axis=2, ylim=c(-1,1))
+points(1:dim(score_mat)[2], colMeans(score_mat11, na.rm=T))
+lines(1:dim(score_mat)[2], colMeans(score_mat11, na.rm=T))
 abline(h=0)
 dev.off()
-pdf('corabs_SFN_mat.box.dif.pdf')
-boxplot(score_mat[used_rows,]-score_mat[used_rows,4], cex.axis=2)
+
+pdf('corabs_SFNJ_mat.box.cor02.pdf',width=8.5)
+score_mat11_02 = score_mat11
+plotg_cor_thresh = 0.2
+score_mat11_02[score_mat11_02<plotg_cor_thresh] = NA
+boxplot(score_mat11_02, cex.axis=2, ylim=c(plotg_cor_thresh,1.1), boxwex=0.5)
+abline(h=0)
+dev.off()
+wilcox.test(score_mat11_02[,1], score_mat11_02[,2], alternative='greater', paired=T)
+wilcox.test(score_mat11_02[,3], score_mat11_02[,4], alternative='greater', paired=T)
+wilcox.test(score_mat11_02[,5], score_mat11_02[,6], alternative='greater', paired=T)
+
+	Wilcoxon signed rank test with continuity correction
+
+data:  score_mat11_02[, 1] and score_mat11_02[, 2]
+V = 164152, p-value = 0.0000000006
+alternative hypothesis: true location shift is greater than 0
+
+
+	Wilcoxon signed rank test with continuity correction
+
+data:  score_mat11_02[, 3] and score_mat11_02[, 4]
+V = 359601, p-value <0.0000000000000002
+alternative hypothesis: true location shift is greater than 0
+
+
+	Wilcoxon signed rank test with continuity correction
+
+data:  score_mat11_02[, 5] and score_mat11_02[, 6]
+V = 243517, p-value <0.0000000000000002
+alternative hypothesis: true location shift is greater than 0
+
+#pdf('corabs_SFN_mat.box.dif.pdf')
+#boxplot(score_mat[used_rows,]-score_mat[used_rows,4], cex.axis=2)
 #boxplot(score_mat[used_rows,], cex.axis=2, ylim=c(-1,1))
-abline(h=0)
-dev.off()
+#abline(h=0)
+#dev.off()
 ########################
 ### add SFNID to mm10
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN = rep('N', dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10)[1])
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1)] = 'SF'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==0)] = 'F'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID!='X') & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID)) ] = 'SFJ'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID=='X') ] = 'SJ'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==0)] = 'J'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1)] = 'S'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID!='X')] = 'SF'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat = cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10, cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN)
 colnames(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat)[dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat)[2]] = 'SFNID'
 ### add P to mm10
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat[,10] = toupper(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat[,10])
 exclude_TSS_mm10 = (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$GeneName!=cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$TSS) | is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$TSS)
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID[!exclude_TSS_mm10] = 'P'
+#cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID[!exclude_TSS_mm10] = 'TSS'
 ###
 write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat, 'cCRE.Gene50KB.mm10.JmetID.FS01.geneName.MID.HID.S01.TSS.GeneKMID.SFNID.bed', quote=F, sep='\t', col.names=T, row.names=F)
 write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,colnames(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat)!='RNAcor'], 'cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.GeneKMID.SFNID.bed', quote=F, sep='\t', col.names=T, row.names=F)
@@ -1167,20 +1247,20 @@ write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAco
 # 118435 unique hg38 cCREs & 66106 unique mm10 cCREs
 # 234762 unique hg38 cCREs-protein-coding-gene pairs & 145109 unique mm10 cCREs-protein-coding-gene pairs (TSS +/-50kb)
 table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$SFNID)
-# hg38
-#    F      N      P      S     SF 
-# 54013 125592  15275  26972  12910
 table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID)
+# hg38
+    J     N     S    SF   SFJ    SJ 
+22471 56125 70690 36784 16579 32113
 # mm10
-#    F     N     P     S    SF 
-# 25528 66082 12324 27808 13367 
+    J     N     S    SF   SFJ    SJ 
+10871 28941 29634 44298 19500 11865 
 #################################################
 
 
 
 #################################################
 ### count number 
-SFNP_ID_order = c('P','SF','F','S','N')
+SFNP_ID_order = SFN_ID_list
 Jmet_i_SFNP_count = c()
 Jmet_i_SFNP_enrich = c()
 for (Jmet_i in used_order){
@@ -1203,10 +1283,10 @@ rownames(Jmet_i_SFNP_count) = used_order
 colnames(Jmet_i_SFNP_enrich) = SFNP_ID_order
 rownames(Jmet_i_SFNP_enrich) = used_order
 ###
-pdf('Jmet_i_SFNP_count.pdf', width=3, height=5)
+pdf('Jmet_i_SFNP_count.pdf', width=4, height=5)
 pheatmap(log10(Jmet_i_SFNP_count), cluster_cols=F, cluster_rows=F, cex=1.5)
 dev.off()
-pdf('Jmet_i_SFNP_enrich.pdf', width=3, height=5)
+pdf('Jmet_i_SFNP_enrich.pdf', width=4, height=5)
 pheatmap(log10(Jmet_i_SFNP_enrich), cluster_cols=F, cluster_rows=F, cex=1.5)
 dev.off()
 #################################################
@@ -1235,24 +1315,371 @@ for (gene_i in unique(hg38_SFN_loops$GeneName)){
 ###
 hg38_SFN_loops = cbind(hg38_SFN_loops[,1:5], round(hg38_SFN_loops[12]*1000), hg38_SFN_loops[,13], rep('#DEDEDE', dim(hg38_SFN_loops)[1]), hg38_SFN_loops[,c(1:3,7)], rep('.', dim(hg38_SFN_loops)[1]), hg38_SFN_loops_TSS, hg38_SFN_loops$GeneName, rep('.', dim(hg38_SFN_loops)[1]) )
 ### remove neg
-hg38_SFN_loops[(hg38_SFN_loops[,6]<0) | (is.na(hg38_SFN_loops[,6])),6] = 0
+#hg38_SFN_loops[(hg38_SFN_loops[,6]<0) | (is.na(hg38_SFN_loops[,6])),6] = 0
+#hg38_SFN_loops[(is.na(hg38_SFN_loops[,6])),6] = 0
 ### change color
-hg38_SFN_loops[hg38_SFN_loops[,7]=='SF',8] = '#FD0606'
-hg38_SFN_loops[hg38_SFN_loops[,7]=='F',8] = '#FFAB00'
-hg38_SFN_loops[hg38_SFN_loops[,7]=='S',8] = '#696969'
-hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#DEDEDE'
-hg38_SFN_loops[hg38_SFN_loops[,7]=='P',8] = '#FF0000'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='SFJ',8] = '#FF0000'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='SF',8] = '#DE00FF'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='SJ',8] = '#FF5500'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='S',8] = '#006FFF'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='J',8] = '#FFAB00'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#DEDEDE'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='TSS',8] = '#000000'
+
+hg38_SFN_loops[hg38_SFN_loops[,7]=='SFJ',8] = '#FF0000'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='SF',8] = '#ED585E'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='SJ',8] = '#FF5500'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='S',8] = '#4FE54A'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='J',8] = '#FFAB00'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#5868F2'
+#hg38_SFN_loops[hg38_SFN_loops[,7]=='TSS',8] = '#000000'
+
 hg38_SFN_loops[hg38_SFN_loops[,17]=='GATA1',]
 hg38_gene_shared_exp[hg38_gene_shared_exp[,5]=='GATA1',]
 hg38_SFN_loops[hg38_SFN_loops[,17]=='CSF1R',]
 hg38_gene_shared_exp[hg38_gene_shared_exp[,5]=='CSF1R',]
 options("scipen"=100, "digits"=4)
 hg38_SFN_loops$HID = apply(cbind(hg38_SFN_loops$JmetID, hg38_SFN_loops$HID), 1, function(x) paste(x[1], x[2], sep=':'))
-write.table(hg38_SFN_loops[hg38_SFN_loops[,6]>=0,], 'hg38.SFN.loop.interact', quote=F, sep='\t', col.names=F, row.names=F)
+write.table(hg38_SFN_loops, 'hg38.SFN.loop.interact', quote=F, sep='\t', col.names=F, row.names=F)
+
+### get new loop interact file with hierachy TSS>SFJ>SF; TSS>SJ>S; TSS>J>N
+### hg38
+ptm = proc.time()
+unique_HID = unique(hg38_SFN_loops$HID)
+hg38_SFN_loops_new = hg38_SFN_loops
+k = 0
+for ( cCRE_i in unique_HID){
+if (k%%1000==0){print(k)}
+	d_cCRE_i = hg38_SFN_loops[hg38_SFN_loops$HID==cCRE_i,]
+if (dim(d_cCRE_i)[1]==1){
+	k = k+1
+	hg38_SFN_loops_new[k,] = d_cCRE_i
+} else {
+	if (sum(d_cCRE_i[,7]=='TSS')>0){
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('TSS')),]
+	} else if (sum(d_cCRE_i[,7]=='SFJ')>0) {
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SFJ')),]
+	} else if (sum(d_cCRE_i[,7]=='SJ')>0) {
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SJ')),]
+	} else if (sum(d_cCRE_i[,7]=='J')>0) {
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('J')),]
+	}
+	###
+	if (dim(d_cCRE_i)[1]==1){
+		k = k+1
+		hg38_SFN_loops_new[k,] = d_cCRE_i
+	} else{
+		k_vec = (k+1):(k+dim(d_cCRE_i)[1])
+		hg38_SFN_loops_new[k_vec,] = d_cCRE_i
+		k = k_vec[length(k_vec)]
+	}
+}
+}
+hg38_SFN_loops_new1 = hg38_SFN_loops_new[1:k,]
+proc.time() - ptm
+
+### get the cCRE pass a certain correlation threshold
+cor_pass_P_mat = c()
+cor_thresh_vec = seq(0,1000,by=100)
+for (cor_thresh in cor_thresh_vec){
+#PP = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='TSS',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='TSS',6])
+PSAF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SFJ',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SFJ',6])
+PSA = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SF',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SF',6])
+PSF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SJ',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SJ',6])
+PS = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='S',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='S',6])
+PF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='J',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='J',6])
+PN = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='N',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='N',6])
+BG = sum(hg38_SFN_loops_new1[,6]>cor_thresh) / length(hg38_SFN_loops_new1[,6])
+cor_pass_P_mat = cbind(cor_pass_P_mat, c(PSAF,PSF,PSF,PS,PF,PN,BG))
+}
+pdf('prop.cCRE.pass.corthresh.pdf', width=5, height=5)
+cor_thresh_vec_plot = cor_thresh_vec/1000
+plot(cor_thresh_vec_plot, cor_pass_P_mat[1,], type='l', cex.axis=1.5)
+lines(cor_thresh_vec_plot, cor_pass_P_mat[1,], col='#FF0000')
+lines(cor_thresh_vec_plot, cor_pass_P_mat[2,], col='#ED585E')
+lines(cor_thresh_vec_plot, cor_pass_P_mat[3,], col='#FF5500')
+lines(cor_thresh_vec_plot, cor_pass_P_mat[4,], col='#4FE54A')
+lines(cor_thresh_vec_plot, cor_pass_P_mat[5,], col='#FFAB00')
+lines(cor_thresh_vec_plot, cor_pass_P_mat[6,], col='#5868F2')
+points(cor_thresh_vec_plot, cor_pass_P_mat[1,], col='#FF0000')
+points(cor_thresh_vec_plot, cor_pass_P_mat[2,], col='#ED585E')
+points(cor_thresh_vec_plot, cor_pass_P_mat[3,], col='#FF5500')
+points(cor_thresh_vec_plot, cor_pass_P_mat[4,], col='#4FE54A')
+points(cor_thresh_vec_plot, cor_pass_P_mat[5,], col='#FFAB00')
+points(cor_thresh_vec_plot, cor_pass_P_mat[6,], col='#5868F2')
+dev.off()
+
+### write interaction passing correlation threshold
+library(tidyverse)
+library(grDevices)
+hg38_SFN_loops_new2 = hg38_SFN_loops_new1
+hg38_SFN_loops_new2[,5] = hg38_SFN_loops_new1[,6]
+hg38_SFN_loops_new2[,6] = hg38_SFN_loops_new1[,5]
+colnames(hg38_SFN_loops_new2)[c(6,5)] = colnames(hg38_SFN_loops_new1)[c(6,5)]
+write.table(hg38_SFN_loops_new2, 'hg38.SFNJ.loop.OD.interact', quote=F, sep='\t', col.names=F, row.names=F)
+### write interact file with header
 bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
-bash2 = 'cat hg38.SFN.loop.interact >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFN.loop.interact'
+bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFNJ.loop.All.interact'
 system(bash1)
 system(bash2)
+bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
+bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' \'{if ($5>=200 || $7=="TSS") print $0}\' | sort -u >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFNJ.loop.cor02.interact'
+system(bash1)
+system(bash2)
+bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
+bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\'  \'{if ($5>=0) print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | awk -F \'\t\' \'{if ($17=="GATA1") print $0}\' >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFNJ.loop.GATA1.interact'
+system(bash1)
+system(bash2)
+
+cor_mat_hg38_SFN_loops_new1 = c()
+set.seed(2019)
+SFN_ID_list1 = SFN_ID_list
+for (SFN_ID in SFN_ID_list1){
+	cor_SFN_ID = hg38_SFN_loops[hg38_SFN_loops[,7]==SFN_ID,6]
+	#cor_SFN_ID = cor_SFN_ID[abs(cor_SFN_ID)>200]
+	cor_mat_hg38_SFN_loops_new1 = cbind(cor_mat_hg38_SFN_loops_new1, cor_SFN_ID[sample(length(cor_SFN_ID), 10000, replace=T)])
+}
+colnames(cor_mat_hg38_SFN_loops_new1) = SFN_ID_list
+pdf('corabs_SFN_mat.box.cor02.cCREeach.pdf',width=8.5)
+cor_mat_hg38_SFN_loops_new1_plot = cor_mat_hg38_SFN_loops_new1/1000
+cor_mat_hg38_SFN_loops_new1_plot[cor_mat_hg38_SFN_loops_new1_plot<(0.2)] = NA
+boxplot((cor_mat_hg38_SFN_loops_new1_plot), cex.axis=2)
+points(1:dim(cor_mat_hg38_SFN_loops_new1_plot)[2], colMeans(cor_mat_hg38_SFN_loops_new1_plot, na.rm=T))
+lines(1:dim(cor_mat_hg38_SFN_loops_new1_plot)[2], colMeans(cor_mat_hg38_SFN_loops_new1_plot, na.rm=T))
+abline(h=0)
+dev.off()
+
+
+wilcox.test(cor_mat_hg38_SFN_loops_new1_plot[,1], cor_mat_hg38_SFN_loops_new1_plot[,2], alternative='greater', paired=F)
+wilcox.test(cor_mat_hg38_SFN_loops_new1_plot[,3], cor_mat_hg38_SFN_loops_new1_plot[,4], alternative='greater', paired=F)
+wilcox.test(cor_mat_hg38_SFN_loops_new1_plot[,5], cor_mat_hg38_SFN_loops_new1_plot[,6], alternative='greater', paired=F)
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  cor_mat_hg38_SFN_loops_new1_plot[, 1] and cor_mat_hg38_SFN_loops_new1_plot[, 2]
+W = 7417914, p-value = 0.0000001
+alternative hypothesis: true location shift is greater than 0
+
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  cor_mat_hg38_SFN_loops_new1_plot[, 3] and cor_mat_hg38_SFN_loops_new1_plot[, 4]
+W = 7571948, p-value <0.0000000000000002
+alternative hypothesis: true location shift is greater than 0
+
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  cor_mat_hg38_SFN_loops_new1_plot[, 5] and cor_mat_hg38_SFN_loops_new1_plot[, 6]
+W = 7035546, p-value = 0.0000000000000003
+alternative hypothesis: true location shift is greater than 0
+
+
+#################################################
+### Output cCRE with SFNID and colors file
+hg38_SFN_loops_new1_bed = unique(hg38_SFN_loops_new1[,c(1:3,12,7,8)])
+hg38_SFN_loops_new1_bed[,4] = apply(hg38_SFN_loops_new1_bed, 1, function(x) unlist(strsplit(x[4], ':'))[2])
+hg38_SFN_loops_new1_bed1 = merge(hg38_SFN_loops_new1_bed, cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,c(7,8)], by='HID')
+hg38_SFN_loops_new1_bed1 = unique(hg38_SFN_loops_new1_bed1)
+### get cCRE name
+hg38_SFN_loops_new1_bed1_cCRE_name = apply(hg38_SFN_loops_new1_bed1, 1, function(x) paste(x[c(5,1,7)], collapse=':'))
+### convert rgb to num
+hg38_SFN_loops_new1_bed1_rgb = apply(apply(hg38_SFN_loops_new1_bed1, 1, function(x) col2rgb(x[6])), 2, function(x) paste(x, collapse=','))
+### reorder columns
+hg38_SFN_loops_new1_bed2 = cbind(hg38_SFN_loops_new1_bed1[,2:4], hg38_SFN_loops_new1_bed1_cCRE_name, rep(0,dim(hg38_SFN_loops_new1_bed1)[1]), rep('+',dim(hg38_SFN_loops_new1_bed1)[1]), rep(0,dim(hg38_SFN_loops_new1_bed1)[1]), rep(0,dim(hg38_SFN_loops_new1_bed1)[1]), hg38_SFN_loops_new1_bed1_rgb)
+###
+write.table(hg38_SFN_loops_new1_bed2, 'hg38.cCRE.SFNJ.colored.bed', quote=F, sep='\t', col.names=F, row.names=F)
+###
+bash1 = 'cat bed.SFNJ.header.txt > hg38.cCRE.SFNJ.colored.bed.tmp'
+bash2 = 'cat hg38.cCRE.SFNJ.colored.bed | awk \'{print $0}\' >> hg38.cCRE.SFNJ.colored.bed.tmp && mv hg38.cCRE.SFNJ.colored.bed.tmp hg38.cCRE.SFNJ.colored.bed'
+system(bash1)
+system(bash2)
+table(apply(hg38_SFN_loops_new1_bed2,1,function(x) unlist(strsplit(x[4], ':'))[1]))
+    J     N     S    SF   SFJ    SJ 
+15042 27708 32039 15487  8560 19599
+#################################################
+
+
+
+#################################################
+### get cCRE with SFN label colors
+### 
+bash0 = 'cat bed.SFN.header.txt > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.withSFN_color.bed'
+system(bash0)
+bash0 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_sf.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,$4,0,"+",0,0,"237,88,94"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.withSFN_color.bed'
+system(bash0)
+bash0 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,$4,0,"+",0,0,"79,229,74"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.withSFN_color.bed'
+system(bash0)
+bash0 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38_n.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,$4,0,"+",0,0,"88,104,242"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/human_ccre_hg38.withHID.withSFN_color.bed'
+system(bash0)
+#################################################
+
+
+
+
+#################################################
+### write Gene-cCRE loop file
+mm10_gene_locus = read.table('/Users/guanjuexiang/Documents/projects/analysis/0813_human_mouse_state_compare_heatmap/mm10.gene.bed', header=F)
+mm10_gene_locus_TSS = mm10_gene_locus
+mm10_gene_locus_TSS[mm10_gene_locus_TSS[,4]=='+',3] = mm10_gene_locus_TSS[mm10_gene_locus_TSS[,4]=='+',2]+1
+mm10_gene_locus_TSS[mm10_gene_locus_TSS[,4]=='-',2] = mm10_gene_locus_TSS[mm10_gene_locus_TSS[,4]=='-',3]-1
+### add TSS position
+mm10_SFN_loops = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat
+mm10_SFN_loops_TSS = mm10_SFN_loops[,1:3]
+k = 0
+for (gene_i in unique(mm10_SFN_loops$GeneName)){
+	k = k+1
+	if (k%%1000==0){print(k)}
+	used_n = sum(mm10_SFN_loops$GeneName==gene_i)
+	TSS_gene_i = mm10_gene_locus_TSS[toupper(mm10_gene_locus_TSS[,5])==gene_i,1:3]
+	mm10_SFN_loops_TSS[mm10_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
+}
+###
+mm10_SFN_loops = cbind(mm10_SFN_loops[,1:5], round(rep(1, dim(mm10_SFN_loops)[1])*1000), mm10_SFN_loops[,12], rep('#DEDEDE', dim(mm10_SFN_loops)[1]), mm10_SFN_loops[,c(1:3,7)], rep('.', dim(mm10_SFN_loops)[1]), mm10_SFN_loops_TSS, mm10_SFN_loops$GeneName, rep('.', dim(mm10_SFN_loops)[1]) )
+### remove neg
+mm10_SFN_loops[mm10_SFN_loops[,7]=='SFJ',8] = '#FF0000'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='SF',8] = '#ED585E'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='SJ',8] = '#FF5500'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='S',8] = '#4FE54A'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='J',8] = '#FFAB00'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='N',8] = '#5868F2'
+
+mm10_SFN_loops[mm10_SFN_loops[,17]=='GATA1',]
+mm10_gene_shared_exp[mm10_gene_shared_exp[,5]=='GATA1',]
+mm10_SFN_loops[mm10_SFN_loops[,17]=='CSF1R',]
+mm10_gene_shared_exp[mm10_gene_shared_exp[,5]=='CSF1R',]
+options("scipen"=100, "digits"=4)
+mm10_SFN_loops$HID = apply(cbind(mm10_SFN_loops$JmetID, mm10_SFN_loops$MID), 1, function(x) paste(x[1], x[2], sep=':'))
+write.table(mm10_SFN_loops, 'mm10.SFN.loop.interact', quote=F, sep='\t', col.names=F, row.names=F)
+
+### get new loop interact file with hierachy TSS>SFJ>SF; TSS>SJ>S; TSS>J>N
+### mm10
+ptm = proc.time()
+unique_MID = unique(mm10_SFN_loops$HID)
+mm10_SFN_loops_new = mm10_SFN_loops
+k = 0
+for ( cCRE_i in unique_MID){
+if (k%%1000==0){print(k)}
+	d_cCRE_i = mm10_SFN_loops[mm10_SFN_loops$HID==cCRE_i,]
+if (dim(d_cCRE_i)[1]==1){
+	k = k+1
+	mm10_SFN_loops_new[k,] = d_cCRE_i
+} else {
+	if (sum(d_cCRE_i[,7]=='TSS')>0){
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('TSS')),]
+	} else if (sum(d_cCRE_i[,7]=='SFJ')>0) {
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SFJ')),]
+	} else if (sum(d_cCRE_i[,7]=='SJ')>0) {
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SJ')),]
+	} else if (sum(d_cCRE_i[,7]=='J')>0) {
+		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('J')),]
+	}
+	###
+	if (dim(d_cCRE_i)[1]==1){
+		k = k+1
+		mm10_SFN_loops_new[k,] = d_cCRE_i
+	} else{
+		k_vec = (k+1):(k+dim(d_cCRE_i)[1])
+		mm10_SFN_loops_new[k_vec,] = d_cCRE_i
+		k = k_vec[length(k_vec)]
+	}
+}
+}
+mm10_SFN_loops_new1 = mm10_SFN_loops_new[1:k,]
+proc.time() - ptm
+
+### write interaction passing correlation threshold
+library(tidyverse)
+library(grDevices)
+mm10_SFN_loops_new2 = mm10_SFN_loops_new1
+mm10_SFN_loops_new2[,5] = mm10_SFN_loops_new1[,6]
+mm10_SFN_loops_new2[,6] = mm10_SFN_loops_new1[,5]
+colnames(mm10_SFN_loops_new2)[c(6,5)] = colnames(mm10_SFN_loops_new1)[c(6,5)]
+mm10_SFN_loops_new2[,12] = mm10_SFN_loops_new2[,19]
+mm10_SFN_loops_new2 = mm10_SFN_loops_new2[,c(1:18)]
+write.table(mm10_SFN_loops_new2, 'mm10.SFNJ.loop.OD.interact', quote=F, sep='\t', col.names=F, row.names=F)
+### write interact file with header
+bash1 = 'cat loop.mm10.header.txt > mm10.SFN.loop.interact.tmp'
+bash2 = 'cat mm10.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFNJ.loop.All.interact'
+system(bash1)
+system(bash2)
+bash1 = 'cat loop.mm10.header.txt > mm10.SFN.loop.interact.tmp'
+bash2 = 'cat mm10.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u | awk -F \'\t\' \'{if ($17=="GATA1") print $0}\' >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFNJ.loop.GATA1.interact'
+system(bash1)
+system(bash2)
+
+
+#################################################
+### Output cCRE with SFNID and colors file
+mm10_SFN_loops_new1_bed = unique(mm10_SFN_loops_new1[,c(1:3,12,7,8)])
+#mm10_SFN_loops_new1_bed[,4] = apply(mm10_SFN_loops_new1_bed, 1, function(x) unlist(strsplit(x[4], ':'))[2])
+mm10_SFN_loops_new1_bed1 = merge(mm10_SFN_loops_new1_bed, cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat[,c(7,8)], by='MID')
+mm10_SFN_loops_new1_bed1 = unique(mm10_SFN_loops_new1_bed1)
+### get cCRE name
+mm10_SFN_loops_new1_bed1_cCRE_name = apply(mm10_SFN_loops_new1_bed1, 1, function(x) paste(x[c(5,1,7)], collapse=':'))
+### convert rgb to num
+mm10_SFN_loops_new1_bed1_rgb = apply(apply(mm10_SFN_loops_new1_bed1, 1, function(x) col2rgb(x[6])), 2, function(x) paste(x, collapse=','))
+### reorder columns
+mm10_SFN_loops_new1_bed2 = cbind(mm10_SFN_loops_new1_bed1[,2:4], mm10_SFN_loops_new1_bed1_cCRE_name, rep(0,dim(mm10_SFN_loops_new1_bed1)[1]), rep('+',dim(mm10_SFN_loops_new1_bed1)[1]), rep(0,dim(mm10_SFN_loops_new1_bed1)[1]), rep(0,dim(mm10_SFN_loops_new1_bed1)[1]), mm10_SFN_loops_new1_bed1_rgb)
+###
+write.table(mm10_SFN_loops_new1_bed2, 'mm10.cCRE.SFNJ.colored.bed', quote=F, sep='\t', col.names=F, row.names=F)
+###
+bash1 = 'cat bed.mm10.SFNJ.header.txt > mm10.cCRE.SFNJ.colored.bed.tmp'
+bash2 = 'cat mm10.cCRE.SFNJ.colored.bed | awk \'{print $0}\' >> mm10.cCRE.SFNJ.colored.bed.tmp && mv mm10.cCRE.SFNJ.colored.bed.tmp mm10.cCRE.SFNJ.colored.bed'
+system(bash1)
+system(bash2)
+table(apply(mm10_SFN_loops_new1_bed2,1,function(x) unlist(strsplit(x[4], ':'))[1]))
+    J     N     S    SF   SFJ    SJ 
+ 6882 11976 13451 16355  9670  7772
+#################################################
+
+
+
+#################################################
+### get cCRE with SFN label colors
+### 
+bash0 = 'cat bed.mm10.SFN.header.txt > /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withHID.withSFN_color.bed'
+system(bash0)
+bash0 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_sf.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,$4,0,"+",0,0,"237,88,94"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withHID.withSFN_color.bed'
+system(bash0)
+bash0 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_s.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,$4,0,"+",0,0,"79,229,74"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withHID.withSFN_color.bed'
+system(bash0)
+bash0 = 'cat /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10_n.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $1,$2,$3,$4,0,"+",0,0,"88,104,242"}\' >> /Users/guanjuexiang/Documents/projects/analysis/04_05_2022_coe/coe_analysis/SF_S_N/mouse_ccre_mm10.withHID.withSFN_color.bed'
+system(bash0)
+#################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.all.tmp'
+bash2 = 'cat hg38.SFN.loop.OD.interact | awk -F \'\t\' \'{print $0}\' >> hg38.SFN.loop.interact.all.tmp && mv hg38.SFN.loop.interact.all.tmp hg38.SFN.loop.all.interact'
+system(bash1)
+system(bash2)
+
+
+###
 bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
 bash2 = 'cat hg38.SFN.loop.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($17=="GATA1") print $0}\' >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFN.loop.GATA1.interact'
 system(bash1)
@@ -1335,7 +1762,82 @@ system(bash2)
 
 
 
+### get Gasperini Enh-gene pairs
+bash_i = 'wget http://hgdownload.soe.ucsc.edu/admin/exe/macOSX.x86_64/liftOver'
+system(bash_i)
+bash_i = 'wget wget https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz'
+system(bash_i)
+bash_i = 'chmod 777 liftOver'
+system(bash_i)
+bash_i = './liftOver -minMatch=0.95 Gasperini.Enh.Gene.pairs.hg19.bed hg19ToHg38.over.chain.gz Gasperini.Enh.Gene.pairs.hg19Tohg38.bed Gasperini.Enh.Gene.pairs.hg19Tohg38.unmapped.bed'
+system(bash_i)
 
+###
+K562_CRISPRi = read.table('Gasperini.Enh.Gene.pairs.hg19Tohg38.bed', header=F)
+#K562_CRISPRi = K562_CRISPRi[K562_CRISPRi[,5],]
+###
+hg38_SFN_loops_crispr_label = rep(-1, dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat)[1])
+for (i in 1:dim(K562_CRISPRi)[1]){
+	if (i%%100==0) {print(i)}
+intersect_Enh_gene_rows = ((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,1]==K562_CRISPRi[i,1]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,6]==K562_CRISPRi[i,4]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,2]<=K562_CRISPRi[i,3]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,3]>=K562_CRISPRi[i,2]) )
+#intersect_Enh_gene_rows = ((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,1]==K562_CRISPRi[i,1]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,2]<=K562_CRISPRi[i,3]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,3]>=K562_CRISPRi[i,2]) )
+if (sum(intersect_Enh_gene_rows)>0){
+	hg38_SFN_loops_crispr_label[intersect_Enh_gene_rows] = K562_CRISPRi[i,5]
+}
+}
+
+hg38_SFN_loops_with_crispri_label = cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat, hg38_SFN_loops_crispr_label)[hg38_SFN_loops_crispr_label!=-1,]
+
+sum(hg38_SFN_loops_with_crispri_label[,14]==1) / sum(hg38_SFN_loops_with_crispri_label[,14]!=-1)
+
+used_type = hg38_SFN_loops_with_crispri_label[,13]=='P'
+sum(hg38_SFN_loops_with_crispri_label[used_type,14]==1) / sum(hg38_SFN_loops_with_crispri_label[,14]==1)
+
+used_type = hg38_SFN_loops_with_crispri_label[,13]=='SF'
+sum(hg38_SFN_loops_with_crispri_label[used_type,14]==1) / sum(hg38_SFN_loops_with_crispri_label[,14]==1)
+
+used_type = hg38_SFN_loops_with_crispri_label[,13]=='F'
+sum(hg38_SFN_loops_with_crispri_label[used_type,14]==1) / sum(hg38_SFN_loops_with_crispri_label[,14]==1)
+
+used_type = hg38_SFN_loops_with_crispri_label[,13]=='S'
+sum(hg38_SFN_loops_with_crispri_label[used_type,14]==1) / sum(hg38_SFN_loops_with_crispri_label[,14]==1)
+
+used_type = hg38_SFN_loops_with_crispri_label[,13]=='N'
+sum(hg38_SFN_loops_with_crispri_label[used_type,14]==1) / sum(hg38_SFN_loops_with_crispri_label[,14]==1)
+
+
+table(hg38_SFN_loops_with_crispri_label[,13])
+
+
+
+
+library(PRROC)
+roc <- roc.curve(scores.class0 = hg38_SFN_loops_with_crispri_label[hg38_SFN_loops_with_crispri_label[,14]==1,12], scores.class1 = hg38_SFN_loops_with_crispri_label[hg38_SFN_loops_with_crispri_label[,14]==0,12], curve = T)
+pdf('ROC.crispri.pdf')
+plot(roc)
+dev.off()
+
+
+hg38_SFN_loops_with_crispri_label_SF = hg38_SFN_loops_with_crispri_label
+hg38_SFN_loops_with_crispri_label_SF[hg38_SFN_loops_with_crispri_label[,7]=='SF',12] = hg38_SFN_loops_with_crispri_label_SF[hg38_SFN_loops_with_crispri_label[,7]=='SF',12]+10
+pr <- roc.curve(scores.class0 = hg38_SFN_loops_with_crispri_label_SF[hg38_SFN_loops_with_crispri_label_SF[,19]==1,12], scores.class1 = hg38_SFN_loops_with_crispri_label_SF[hg38_SFN_loops_with_crispri_label[,19]==0,12], curve = T)
+pdf('ROC.crispri.SF.pdf')
+plot(pr)
+dev.off()
+
+
+# PR Curve
+pr <- pr.curve(scores.class0 = hg38_SFN_loops_with_crispri_label[hg38_SFN_loops_with_crispri_label[,14]==1,12], scores.class1 = hg38_SFN_loops_with_crispri_label[hg38_SFN_loops_with_crispri_label[,14]==0,12], curve = T)
+pdf('PRC.crispri.pdf')
+plot(pr)
+dev.off()
+
+
+hg38_SFN_loops_with_crispri_label_SF = hg38_SFN_loops_with_crispri_label[is.element(hg38_SFN_loops_with_crispri_label[,7], c('SF','F')),]
+pr <- pr.curve(scores.class0 = hg38_SFN_loops_with_crispri_label_SF[hg38_SFN_loops_with_crispri_label_SF[,14]==1,6], scores.class1 = hg38_SFN_loops_with_crispri_label_SF[hg38_SFN_loops_with_crispri_label_SF[,14]==0,6], curve = T)
+pdf('PRC.crispri.SF.pdf')
+plot(pr)
+dev.off()
 
 
 
