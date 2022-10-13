@@ -3,9 +3,58 @@ library(dynamicTreeCut)
 library(pheatmap)
 library(lsa)
 library(LSD)
+
+noise_mat_fun = function(input_mat, noise_level){
+  noise_mat_i = matrix(runif(dim(input_mat)[1]*dim(input_mat)[2], -noise_level, noise_level), dim(input_mat)[1], dim(input_mat)[2])
+  return(noise_mat_i)
+}
+
+get_smooth_bedID = function(bed_mat_OD, smooth_win, bed_cols, sig_cols){
+  #bed_mat_OD = dh
+  #smooth_win = 250
+  #bed_cols = 1:3
+  #sig_cols = 7:dim(dh)[2]
+  ###
+  bed_mat = bed_mat_OD[,bed_cols]
+  sig_mat = bed_mat_OD[,sig_cols]
+  ### expand bed file
+  bed_mat[,2] = bed_mat[,2]-smooth_win
+  bed_mat[bed_mat[,2]<0,2] = 0
+  bed_mat[,3] = bed_mat[,3]+smooth_win
+  ### get merge bed ID
+  write.table(bed_mat, 'tmp.file.bed', quote=F, col.names=F, row.names=F, sep='\t')
+  bash1 = 'bedtools merge -i tmp.file.bed > tmp.file.merge.bed'
+  system(bash1)
+  bash1 = 'cat tmp.file.merge.bed | awk -F \'\t\' -v OFS=\'\t\' \'{print $0, NR}\' > tmp.file.merge.ID.bed'
+  system(bash1)
+  bash1 = 'bedtools map -a tmp.file.bed -b tmp.file.merge.ID.bed -c 4 -o max > tmp.file.WithmergeID.bed'
+  system(bash1)
+  ###
+  bed_mat_withMergeID = read.table('tmp.file.WithmergeID.bed', header=F, sep='\t')
+  merge_IDs = bed_mat_withMergeID[,4]
+  ###
+  k = 0
+  for (id in merge_IDs){
+    k = k +1
+    if (k%%10000==0){print(k/length(merge_IDs))}
+    if (sum(merge_IDs==id)>1){
+      colMean_sig = colMeans(sig_mat[merge_IDs==id,])
+      sig_mat[merge_IDs==id,] = t(matrix(replicate(sum(merge_IDs==id),colMean_sig),nrow=length(colMean_sig)))
+    }
+  }
+  ### clean tmp files
+  bash1 = 'rm tmp.file.bed tmp.file.merge.bed tmp.file.merge.ID.bed tmp.file.WithmergeID.bed'
+  system(bash1)
+  bed_mat_new = bed_mat_OD
+  bed_mat_new[,sig_cols] = sig_mat
+  return(bed_mat_new)
+}
+
 #################################################
 dh = read.table('S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.txt', header=T, sep='\t')
 dm = read.table('S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.PDmerged.clusterID.txt', header=T, sep='\t')
+dh = get_smooth_bedID(dh, 250, 1:3, 7:dim(dh)[2])
+dm = get_smooth_bedID(dm, 250, 1:3, 7:dim(dm)[2])
 
 dhs = dh[,-c(1:6)]
 rep1_h = c(1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40)
@@ -14,7 +63,7 @@ ct_h = c('AVE', 'B', 'CD34', 'CLP', 'CMP', 'EOS', 'ERY', 'GMP', 'HSC', 'HUDEP1',
 dhs_ctmerge = matrix(0, nrow=dim(dhs)[1], ncol=length(ct_h))
 colnames(dhs_ctmerge) = ct_h
 for (j in 1:length(ct_h)){
-	dhs_ctmerge[,j] = (dhs[,rep1_h[j]] + dhs[,rep2_h[j]])/2
+  dhs_ctmerge[,j] = (dhs[,rep1_h[j]] + dhs[,rep2_h[j]])/2
 }
 
 dms = dm[,-c(1:6)]
@@ -24,7 +73,7 @@ ct_m = c('AVE', 'B', 'CFUE', 'CFUMK', 'CLP', 'CMP', 'ER4', 'ERY', 'ERYfl', 'G1E'
 dms_ctmerge = matrix(0, nrow=dim(dms)[1], ncol=length(ct_m))
 colnames(dms_ctmerge) = ct_m
 for (j in 1:length(ct_m)){
-	dms_ctmerge[,j] = (dms[,rep1_m[j]] + dms[,rep2_m[j]])/2
+  dms_ctmerge[,j] = (dms[,rep1_m[j]] + dms[,rep2_m[j]])/2
 }
 
 ### shared cts
@@ -41,8 +90,8 @@ ct_shared_reorder = c('AVE', 'HSC', 'CMP', 'CLP', 'MEP', 'ERY', 'MK', 'GMP', 'MO
 dhs_ctmerge_shared_reorder = c()
 dms_ctmerge_shared_reorder = c()
 for (i in 1:length(ct_shared_reorder)){
-	dhs_ctmerge_shared_reorder = cbind(dhs_ctmerge_shared_reorder, dhs_ctmerge_shared[,colnames(dhs_ctmerge_shared)==ct_shared_reorder[i]])
-	dms_ctmerge_shared_reorder = cbind(dms_ctmerge_shared_reorder, dms_ctmerge_shared[,colnames(dms_ctmerge_shared)==ct_shared_reorder[i]])
+  dhs_ctmerge_shared_reorder = cbind(dhs_ctmerge_shared_reorder, dhs_ctmerge_shared[,colnames(dhs_ctmerge_shared)==ct_shared_reorder[i]])
+  dms_ctmerge_shared_reorder = cbind(dms_ctmerge_shared_reorder, dms_ctmerge_shared[,colnames(dms_ctmerge_shared)==ct_shared_reorder[i]])
 }
 colnames(dhs_ctmerge_shared_reorder) = ct_shared_reorder
 colnames(dms_ctmerge_shared_reorder) = ct_shared_reorder
@@ -66,7 +115,7 @@ plot_lim_kmmean = c(min(c(km_mean_sig_h, km_mean_sig_m)), max(c(km_mean_sig_h, k
 lm_kmmean = lm(km_mean_sig_h~km_mean_sig_m)
 ### 
 for (ct_i in 1:dim(dhs_ctmerge_shared_reorder)[2]){
-	ct_name_i = colnames(dhs_ctmerge_shared_reorder)[ct_i]
+  ct_name_i = colnames(dhs_ctmerge_shared_reorder)[ct_i]
 km_mean_sig_h = as.numeric(dhs_ctmerge_shared_reorder[,ct_i])
 km_mean_sig_h = km_mean_sig_h[order(-km_mean_sig_h)][1:10000]
 km_mean_sig_m = as.numeric(dms_ctmerge_shared_reorder[,ct_i])
@@ -108,7 +157,7 @@ coordinates = rbind(dh[,c(1:6)], dm[,c(1:6)])
 dhs_ctmerge_shared_reorder_pca = prcomp(dhs_dms_ctmerge_shared_reorder, center = F, scale. = F)
 dhs_ctmerge_shared_reorder_pca_summary = summary(dhs_ctmerge_shared_reorder_pca)
 print(dhs_ctmerge_shared_reorder_pca_summary$importance)
-pca_used_num = sum(dhs_ctmerge_shared_reorder_pca_summary$importance[3,]<0.95)+1
+pca_used_num = sum(dhs_ctmerge_shared_reorder_pca_summary$importance[3,]<0.99)+1
 set.seed(2019)
 used_id = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 10000)
 dhs_ctmerge_shared_reorder_pca_x_plot = dhs_ctmerge_shared_reorder_pca$x[used_id,]
@@ -144,8 +193,8 @@ start_km_num = 100
 km_dhs_ctmerge_shared1 = kmeans(dhs_ctmerge_shared_reorder_pca$x[,1:pca_used_num], centers=start_km_num)
 ### check KM cluster cCRE Human/Mouse ratio
 for (i in 1:start_km_num){
-	dhs_dms_ctmerge_shared_reorder_ji = dhs_dms_ctmerge_shared_reorder[km_dhs_ctmerge_shared1$cluster==i,]
-	KMPCA_meansig_mat_1 = rbind(KMPCA_meansig_mat_1, colMeans(dhs_dms_ctmerge_shared_reorder_ji))
+  dhs_dms_ctmerge_shared_reorder_ji = dhs_dms_ctmerge_shared_reorder[km_dhs_ctmerge_shared1$cluster==i,]
+  KMPCA_meansig_mat_1 = rbind(KMPCA_meansig_mat_1, colMeans(dhs_dms_ctmerge_shared_reorder_ji))
 }
 colnames(KMPCA_meansig_mat_1) = colnames(dhs_ctmerge_shared_reorder)
 pdf('KMPCA.Joint.1.cluster.pdf', height=30)
@@ -161,10 +210,10 @@ dev.off()
 set.seed(2019)
 cCRE_esRP_KM_determineK_KM_ratio = c()
 for (ini_k in seq(10,200,by=10)){
-	print(ini_k)
-	used_id_j = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 50000)
-	km_dhs_ctmerge_shared_check = kmeans(dhs_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=ini_k)
-	cCRE_esRP_KM_determineK_KM_ratio = c(cCRE_esRP_KM_determineK_KM_ratio, km_dhs_ctmerge_shared_check$tot.withinss/km_dhs_ctmerge_shared_check$betweenss)
+  print(ini_k)
+  used_id_j = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 50000)
+  km_dhs_ctmerge_shared_check = kmeans(dhs_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=ini_k)
+  cCRE_esRP_KM_determineK_KM_ratio = c(cCRE_esRP_KM_determineK_KM_ratio, km_dhs_ctmerge_shared_check$tot.withinss/km_dhs_ctmerge_shared_check$betweenss)
 }
 pdf('cCRE_esRP_KM.determineK.pdf')
 plot(seq(10,200,by=10), cCRE_esRP_KM_determineK_KM_ratio)
@@ -186,13 +235,13 @@ used_id_j = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 50000)
 km_dhs_ctmerge_shared1 = kmeans(dhs_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=start_km_num)
 ### check KM cluster cCRE Human/Mouse ratio
 for (i in 1:start_km_num){
-	if (sum(km_dhs_ctmerge_shared1$cluster==i)>100){
-	dhs_dms_ctmerge_shared_reorder_ji = dhs_dms_ctmerge_shared_reorder[used_id_j,][km_dhs_ctmerge_shared1$cluster==i,]
-	KMPCA_meansig_mat = rbind(KMPCA_meansig_mat, colMeans(dhs_dms_ctmerge_shared_reorder_ji))
-	KMPCA_cCRE_num = c(KMPCA_cCRE_num, dim(dhs_dms_ctmerge_shared_reorder_ji)[1])
-	cCRE_id_ji = cCRE_id[used_id_j][km_dhs_ctmerge_shared1$cluster==i]
-	HM_count = rbind(HM_count, c(sum(cCRE_id_ji=='H'), sum(cCRE_id_ji=='M')))
-	}
+  if (sum(km_dhs_ctmerge_shared1$cluster==i)>100){
+  dhs_dms_ctmerge_shared_reorder_ji = dhs_dms_ctmerge_shared_reorder[used_id_j,][km_dhs_ctmerge_shared1$cluster==i,]
+  KMPCA_meansig_mat = rbind(KMPCA_meansig_mat, colMeans(dhs_dms_ctmerge_shared_reorder_ji))
+  KMPCA_cCRE_num = c(KMPCA_cCRE_num, dim(dhs_dms_ctmerge_shared_reorder_ji)[1])
+  cCRE_id_ji = cCRE_id[used_id_j][km_dhs_ctmerge_shared1$cluster==i]
+  HM_count = rbind(HM_count, c(sum(cCRE_id_ji=='H'), sum(cCRE_id_ji=='M')))
+  }
 }
 KMPCA_iteration = c(KMPCA_iteration, rep(j, start_km_num))
 }
@@ -211,29 +260,90 @@ HM_count_mean = c()
 cCRE_count_KMPCA_iteration_KM_k = c()
 cluster_set = min(unique(KMPCA_meansig_mat_pca_joint_KM$cluster)):max(unique(KMPCA_meansig_mat_pca_joint_KM$cluster))
 for (KM_k in cluster_set){
-	used_KM_k = KMPCA_meansig_mat_pca_joint_KM$cluster==KM_k
-	KMPCA_iteration_KM_k = c(KMPCA_iteration_KM_k, length(unique(KMPCA_iteration[used_KM_k])) )
-	if (sum(used_KM_k)>1){
-		KMPCA_meansig_mat_meansig_mat = rbind(KMPCA_meansig_mat_meansig_mat, colMeans(KMPCA_meansig_mat[used_KM_k,]))
-		HM_count_mean = rbind(HM_count_mean, apply(HM_count[used_KM_k,], 2, sum))
-		cCRE_count_KMPCA_iteration_KM_k = c(cCRE_count_KMPCA_iteration_KM_k, sum(KMPCA_cCRE_num[used_KM_k]))
-	} else{
-		KMPCA_meansig_mat_meansig_mat = rbind(KMPCA_meansig_mat_meansig_mat, KMPCA_meansig_mat[used_KM_k,])
-		HM_count_mean = rbind(HM_count_mean, HM_count[used_KM_k,])
-		cCRE_count_KMPCA_iteration_KM_k = c(cCRE_count_KMPCA_iteration_KM_k, KMPCA_cCRE_num[used_KM_k])
-	}
+  used_KM_k = KMPCA_meansig_mat_pca_joint_KM$cluster==KM_k
+  KMPCA_iteration_KM_k = c(KMPCA_iteration_KM_k, length(unique(KMPCA_iteration[used_KM_k])) )
+  if (sum(used_KM_k)>1){
+    KMPCA_meansig_mat_meansig_mat = rbind(KMPCA_meansig_mat_meansig_mat, colMeans(KMPCA_meansig_mat[used_KM_k,]))
+    HM_count_mean = rbind(HM_count_mean, apply(HM_count[used_KM_k,], 2, sum))
+    cCRE_count_KMPCA_iteration_KM_k = c(cCRE_count_KMPCA_iteration_KM_k, sum(KMPCA_cCRE_num[used_KM_k]))
+  } else{
+    KMPCA_meansig_mat_meansig_mat = rbind(KMPCA_meansig_mat_meansig_mat, KMPCA_meansig_mat[used_KM_k,])
+    HM_count_mean = rbind(HM_count_mean, HM_count[used_KM_k,])
+    cCRE_count_KMPCA_iteration_KM_k = c(cCRE_count_KMPCA_iteration_KM_k, KMPCA_cCRE_num[used_KM_k])
+  }
 }
+
 
 HM_count_mean_log2FC = log2((HM_count_mean[,1]+1)/(HM_count_mean[,2]/mean(HM_count_mean[,2])*mean(HM_count_mean[,1])+1))
 #select_Kclusters = ((KMPCA_iteration_KM_k>=(check_reproducible*0.9)) * (abs(HM_count_mean_log2FC)<=1000))!=0
+
+
+### determine check_reproducible threshold
+zp_threshold_rmtop = 0.05
+zp_threshold = 0.05
+iter_n_threshold = 5
+check_reproducible_vec = KMPCA_iteration_KM_k/check_reproducible
+for (i in 1:iter_n_threshold){
+check_reproducible_vec_pre = check_reproducible_vec
+zp = pnorm((check_reproducible_vec-mean(check_reproducible_vec))/sd(check_reproducible_vec), lower.tail=T)
+if (sum(zp<zp_threshold_rmtop)>0){
+print(min(abs(check_reproducible_vec)[zp<zp_threshold_rmtop]))
+}
+check_reproducible_vec = check_reproducible_vec[zp>=zp_threshold_rmtop]
+if (length(check_reproducible_vec)==length(check_reproducible_vec_pre)){
+  break
+}
+}
+check_reproducible_vec_new = KMPCA_iteration_KM_k/check_reproducible
+zp = pnorm((check_reproducible_vec_new-mean(check_reproducible_vec))/sd(check_reproducible_vec), lower.tail=T)
+reproducible_thresh = min(check_reproducible_vec_new[zp>=zp_threshold])
+print(reproducible_thresh)
+
+### determine abs_HM_count_mean_log2FC threshold
+abs_HM_count_mean_log2FC = abs(HM_count_mean_log2FC)
+for (i in 1:iter_n_threshold){
+abs_HM_count_mean_log2FC_pre = abs_HM_count_mean_log2FC
+zp = pnorm((abs_HM_count_mean_log2FC-mean(abs_HM_count_mean_log2FC))/sd(abs_HM_count_mean_log2FC), lower.tail=F)
+if (sum(zp<zp_threshold_rmtop)>0){
+print(min(abs(abs_HM_count_mean_log2FC)[zp<zp_threshold_rmtop]))
+}
+abs_HM_count_mean_log2FC = abs_HM_count_mean_log2FC[zp>=zp_threshold_rmtop]
+if (length(abs_HM_count_mean_log2FC)==length(abs_HM_count_mean_log2FC_pre)){
+  break
+}
+}
+abs_HM_count_mean_log2FC_new = abs(HM_count_mean_log2FC)
+zp = pnorm((abs_HM_count_mean_log2FC_new-mean(abs_HM_count_mean_log2FC))/sd(abs_HM_count_mean_log2FC), lower.tail=F)
+HM_count_mean_log2FC_thresh = max(abs_HM_count_mean_log2FC_new[zp>=zp_threshold])
+print(HM_count_mean_log2FC_thresh)
+#HM_count_mean_log2FC_thresh = 2
+
+
+
 pdf('KM.reproducible.p.hist.pdf')
 hist(KMPCA_iteration_KM_k/check_reproducible, breaks=30)
-abline(v=0.75)
+#reproducible_thresh = 0.75
+abline(v=reproducible_thresh)
 box()
 dev.off()
 
+pdf('abs_HM_count_mean_log2FC.hist.pdf')
+hist(abs(HM_count_mean_log2FC), breaks=30)
+#HM_count_mean_log2FC_thresh = 1.5
+abline(v=HM_count_mean_log2FC_thresh)
+box()
+dev.off()
+
+
+png('abs_HM_count_mean_log2FC.reproducible.png')
+plot(abs(HM_count_mean_log2FC), KMPCA_iteration_KM_k/check_reproducible)
+abline(h=reproducible_thresh)
+abline(v=HM_count_mean_log2FC_thresh)
+dev.off()
+
+
 ### plot 2 heatmap (1) reproducible and cross species (2) reproducible
-select_Kclusters = ((KMPCA_iteration_KM_k>=(check_reproducible*0.75)) * (abs(HM_count_mean_log2FC)<=1))!=0
+select_Kclusters = ((KMPCA_iteration_KM_k>=(check_reproducible*reproducible_thresh)) * (abs(HM_count_mean_log2FC)<=HM_count_mean_log2FC_thresh))!=0
 KMPCA_meansig_mat_meansig_mat_reproducible = KMPCA_meansig_mat_meansig_mat[select_Kclusters,]
 cCRE_count_KMPCA_iteration_KM_k_reproducible = cCRE_count_KMPCA_iteration_KM_k[select_Kclusters]
 colnames(KMPCA_meansig_mat_meansig_mat_reproducible) = colnames(dhs_ctmerge_shared_reorder)
@@ -243,8 +353,17 @@ pdf('KMPCA.Joint.reproducible.cross_spec.cluster.pdf', height=10, width=6)
 pheatmap(KMPCA_meansig_mat_meansig_mat_reproducible, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(1-cor(t(KMPCA_meansig_mat_meansig_mat_reproducible))))
 dev.off()
 
+dhs_dms_ctmerge_shared_reorder_meansig_ctgroup = c()
+#ct_groups = cutreeDynamic(hclust(dist(t(KMPCA_meansig_mat_meansig_mat_reproducible))), minClusterSize=1, deepSplit=4, method='hybrid')
+ct_groups = cutree(hclust(dist(t(KMPCA_meansig_mat_meansig_mat_reproducible))), 4)
+cbind(ct_groups, colnames(KMPCA_meansig_mat_meansig_mat_reproducible))[order(ct_groups),]
+
+png('test.tree.png')
+plot(hclust(dist(t(KMPCA_meansig_mat_meansig_mat_reproducible))))
+dev.off()
+
 ###
-select_Kclusters1 = ((KMPCA_iteration_KM_k>=(check_reproducible*0.75)) )!=0
+select_Kclusters1 = ((KMPCA_iteration_KM_k>=(check_reproducible*reproducible_thresh)) )!=0
 KMPCA_meansig_mat_meansig_mat_reproducible1 = KMPCA_meansig_mat_meansig_mat[select_Kclusters1,]
 cCRE_count_KMPCA_iteration_KM_k_reproducible1 = cCRE_count_KMPCA_iteration_KM_k[select_Kclusters1]
 colnames(KMPCA_meansig_mat_meansig_mat_reproducible1) = colnames(dhs_ctmerge_shared_reorder)
@@ -261,24 +380,57 @@ dev.off()
 
 #################################################
 ### reproducible cluster ids & prepare Train data for QDA
+set.seed(2019)
 reproducible_clusters = cluster_set[select_Kclusters]
 reproducible_clusters_rows = is.element(KMPCA_meansig_mat_pca_joint_KM$cluster, reproducible_clusters)
-train_data_PCs = KMPCA_meansig_mat_pca_x[reproducible_clusters_rows,1:pca_used_num]
+train_data_notPCs = KMPCA_meansig_mat[reproducible_clusters_rows,]
 train_data_y = KMPCA_meansig_mat_pca_joint_KM$cluster[reproducible_clusters_rows]
-QDA_train_data = cbind(train_data_y, train_data_PCs)
+QDA_train_data = cbind(train_data_y, train_data_notPCs)
 colnames(QDA_train_data)[1] = 'Y'
 QDA_cluster_train_data_prior = cCRE_count_KMPCA_iteration_KM_k_reproducible / sum(cCRE_count_KMPCA_iteration_KM_k_reproducible)
 
-### Train QDA
-library(MASS)
-QDA_model = qda(Y~., data=as.data.frame(QDA_train_data), prior=QDA_cluster_train_data_prior)
-#QDA_model = lda(Y~., data=as.data.frame(QDA_train_data), prior=QDA_cluster_train_data_prior)
-
 ### predict QDA id for each cCRE
-all_cCREs_prediction_Y = predict(QDA_model, newdata = as.data.frame(dhs_ctmerge_shared_reorder_pca$x))$class
+#all_cCREs_prediction_Y = predict(QDA_model, newdata = as.data.frame(dhs_ctmerge_shared_reorder_pca$x))$class
 #################################################
+### correlation based clustering
+set.seed(2019)
+cluster_center_mean = matrix(0, nrow = length(unique(train_data_y)), ncol=dim(train_data_notPCs)[2])
+for (i in 1:length(unique(train_data_y))){
+  cluster_center_mean[i,] = colMeans(train_data_notPCs[train_data_y==unique(train_data_y)[i],])
+}
+rownames(cluster_center_mean) = unique(train_data_y)
 
+pdf('KMnotPCA.Joint.reproducible.cluster.pdf', height=12, width=6)
+plot_color_lim = 0.3
+breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
+pheatmap(cluster_center_mean, cluster_col=T, cluster_rows=T, cex = 1.5, clustering_distance_cols=dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)))
+dev.off()
+
+noise_level = 0.001
+each_cCRE_x = dhs_dms_ctmerge_shared_reorder + noise_mat_fun(dhs_dms_ctmerge_shared_reorder, noise_level)
+#each_cCRE_x_cor_mat1 = cor(t(each_cCRE_x), t(cluster_center_mean))
+each_cCRE_x_cor_mat = t(apply(each_cCRE_x, 1, function(x) cosine(x, t(cluster_center_mean)) ))
+each_cCRE_x_cor_mat_Y_mat = apply(each_cCRE_x_cor_mat, 1, function(x) names(which.max(x)))
+print(each_cCRE_x_cor_mat[200342+(94096:94099),])
+print(apply(each_cCRE_x_cor_mat[200342+(94092:94102),], 1, which.max))
+
+iter_cCRE_assign_num = 30
+for (cor_i in 2:iter_cCRE_assign_num){
+  print(cor_i)
+each_cCRE_x = dhs_dms_ctmerge_shared_reorder + noise_mat_fun(dhs_dms_ctmerge_shared_reorder, noise_level)
+#each_cCRE_x_cor_mat_i = cor(t(each_cCRE_x), t(QDA_model_mean))
+each_cCRE_x_cor_mat_i = t(apply(each_cCRE_x, 1, function(x) cosine(x, t(cluster_center_mean)) ))
+each_cCRE_x_cor_mat = each_cCRE_x_cor_mat + each_cCRE_x_cor_mat_i
+each_cCRE_x_cor_mat_Y_mat = cbind(each_cCRE_x_cor_mat_Y_mat, apply(each_cCRE_x_cor_mat, 1, function(x) names(which.max(x))))
+print(each_cCRE_x_cor_mat[200342+(94096:94099),])
+}
+each_cCRE_x_cor_mat = each_cCRE_x_cor_mat / iter_cCRE_assign_num
+### get max.cor as cluster
+each_cCRE_x_cor_mat_Y = apply(each_cCRE_x_cor_mat, 1, function(x) names(which.max(x)))
+all_cCREs_prediction_Y = each_cCRE_x_cor_mat_Y
 ###
+#################################################
 
 
 #################################################
@@ -289,15 +441,15 @@ dhs_dms_ctmerge_shared_reorder_meansig_M = c()
 dhs_dms_ctmerge_shared_reorder_meansig =c()
 dhs_dms_ctmerge_shared_reorder_meansig_rowN = c()
 for (KM_i in unique(all_cCREs_prediction_Y)){
-	cCRE_id_KM_i = cCRE_id[all_cCREs_prediction_Y==KM_i]
-	cCRE_id_HM_count = rbind(cCRE_id_HM_count, c(sum(cCRE_id_KM_i=='H'), sum(cCRE_id_KM_i=='M')))
-	dhs_dms_ctmerge_shared_reorder_meansig = rbind(dhs_dms_ctmerge_shared_reorder_meansig, colMeans(dhs_dms_ctmerge_shared_reorder[all_cCREs_prediction_Y==KM_i,]))
-	dhs_dms_ctmerge_shared_reorder_meansig_rowN = c(dhs_dms_ctmerge_shared_reorder_meansig_rowN, sum(all_cCREs_prediction_Y==KM_i))
-	###
-	H_rows = cCRE_id=='H'
-	dhs_dms_ctmerge_shared_reorder_meansig_H = rbind(dhs_dms_ctmerge_shared_reorder_meansig_H, colMeans(dhs_dms_ctmerge_shared_reorder[H_rows,][all_cCREs_prediction_Y[H_rows]==KM_i,]))
-	M_rows = cCRE_id=='M'
-	dhs_dms_ctmerge_shared_reorder_meansig_M = rbind(dhs_dms_ctmerge_shared_reorder_meansig_M, colMeans(dhs_dms_ctmerge_shared_reorder[M_rows,][all_cCREs_prediction_Y[M_rows]==KM_i,]))
+  cCRE_id_KM_i = cCRE_id[all_cCREs_prediction_Y==KM_i]
+  cCRE_id_HM_count = rbind(cCRE_id_HM_count, c(sum(cCRE_id_KM_i=='H'), sum(cCRE_id_KM_i=='M')))
+  dhs_dms_ctmerge_shared_reorder_meansig = rbind(dhs_dms_ctmerge_shared_reorder_meansig, colMeans(dhs_dms_ctmerge_shared_reorder[all_cCREs_prediction_Y==KM_i,]))
+  dhs_dms_ctmerge_shared_reorder_meansig_rowN = c(dhs_dms_ctmerge_shared_reorder_meansig_rowN, sum(all_cCREs_prediction_Y==KM_i))
+  ###
+  H_rows = cCRE_id=='H'
+  dhs_dms_ctmerge_shared_reorder_meansig_H = rbind(dhs_dms_ctmerge_shared_reorder_meansig_H, colMeans(dhs_dms_ctmerge_shared_reorder[H_rows,][all_cCREs_prediction_Y[H_rows]==KM_i,]))
+  M_rows = cCRE_id=='M'
+  dhs_dms_ctmerge_shared_reorder_meansig_M = rbind(dhs_dms_ctmerge_shared_reorder_meansig_M, colMeans(dhs_dms_ctmerge_shared_reorder[M_rows,][all_cCREs_prediction_Y[M_rows]==KM_i,]))
 }
 rownames(dhs_dms_ctmerge_shared_reorder_meansig) = unique(all_cCREs_prediction_Y)
 
@@ -305,10 +457,11 @@ rownames(dhs_dms_ctmerge_shared_reorder_meansig) = unique(all_cCREs_prediction_Y
 dhs_dms_ctmerge_shared_reorder_meansig_OD = dhs_dms_ctmerge_shared_reorder_meansig
 dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig_OD
 #dhs_dms_ctmerge_shared_reorder_meansig[dhs_dms_ctmerge_shared_reorder_meansig<0.01] = 0
-dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig + matrix(runif(dim(dhs_dms_ctmerge_shared_reorder_meansig)[1]*dim(dhs_dms_ctmerge_shared_reorder_meansig)[2], -0.01, 0.01), dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[2])
+dhs_dms_ctmerge_shared_reorder_meansig = dhs_dms_ctmerge_shared_reorder_meansig + noise_mat_fun(dhs_dms_ctmerge_shared_reorder_meansig, 0.01)
 
+
+#hclust_cCRE = hclust(dist(1 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))))
 hclust_cCRE = hclust(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))))
-#hclust_cCRE = hclust(dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))))
 #hclust_cCRE = hclust( dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
 #hclust_cCRE_col = hclust(dist(t(dhs_dms_ctmerge_shared_reorder_meansig) ))
 #hclust_cCRE_col = hclust(dist(1-cosine((dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor((dhs_dms_ctmerge_shared_reorder_meansig))/2 ))
@@ -335,30 +488,46 @@ hclust_cCRE_DTC_modified = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:
 set.seed(2019)
 pdf('dhs_dms_ctmerge_shared_reorder_meansig.hist.pdf')
 hist(log10(c(abs(dhs_dms_ctmerge_shared_reorder_meansig))), breaks=30, log='')
-noise_lim = 0.003
+noise_lim = 0.001
 abline(v=log10(noise_lim))
 box()
 dev.off()
 ### iteratively cluster QDA clusters
 set.seed(2019)
 iter_n = 100
+### merge ct groups
+dhs_dms_ctmerge_shared_reorder_meansig_ctgroup = c()
+#ct_groups = cutreeDynamic(hclust(dist(t(KMPCA_meansig_mat_meansig_mat_reproducible))), minClusterSize=1, deepSplit=4, method='hybrid')
+ct_groups = cutree(hclust(dist(t(KMPCA_meansig_mat_meansig_mat_reproducible))), 4)
+cbind(ct_groups, colnames(KMPCA_meansig_mat_meansig_mat_reproducible))[order(ct_groups),]
+for (ctgi in unique(ct_groups)){
+  if (sum(ct_groups==ctgi)>1){
+    dhs_dms_ctmerge_shared_reorder_meansig_ctgroup = cbind(dhs_dms_ctmerge_shared_reorder_meansig_ctgroup, rowMeans(dhs_dms_ctmerge_shared_reorder_meansig[,ct_groups==ctgi]))
+  } else{
+    dhs_dms_ctmerge_shared_reorder_meansig_ctgroup = cbind(dhs_dms_ctmerge_shared_reorder_meansig_ctgroup, (dhs_dms_ctmerge_shared_reorder_meansig[,ct_groups==ctgi]))
+  }
+}
+dhs_dms_ctmerge_shared_reorder_meansig_ctgroup[dhs_dms_ctmerge_shared_reorder_meansig_ctgroup<0] = 0
+dhs_dms_ctmerge_shared_reorder_meansig_for_cluster = dhs_dms_ctmerge_shared_reorder_meansig
+dhs_dms_ctmerge_shared_reorder_meansig_for_cluster[dhs_dms_ctmerge_shared_reorder_meansig_for_cluster<0] = 0
+
 ### run hclust 100 times 
 KM_by_KM_SameClu_count = matrix(0, dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[1])
 for (iter_i in 1:iter_n){
-	print(iter_i)
-noise_mat = matrix(runif(dim(dhs_dms_ctmerge_shared_reorder_meansig)[1]*dim(dhs_dms_ctmerge_shared_reorder_meansig)[2], -noise_lim, noise_lim), dim(dhs_dms_ctmerge_shared_reorder_meansig)[1], dim(dhs_dms_ctmerge_shared_reorder_meansig)[2])
-dhs_dms_ctmerge_shared_reorder_meansig_noise = dhs_dms_ctmerge_shared_reorder_meansig + noise_mat
-hclust_cCRE = hclust(dist(1 - cor(t( cbind(rep(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_noise)[1]),dhs_dms_ctmerge_shared_reorder_meansig_noise) ))))
+  print(iter_i)
+noise_mat = noise_mat_fun(dhs_dms_ctmerge_shared_reorder_meansig_ctgroup, noise_lim)
+dhs_dms_ctmerge_shared_reorder_meansig_noise = dhs_dms_ctmerge_shared_reorder_meansig_ctgroup + noise_mat
+hclust_cCRE = hclust(dist(1 - cosine(t( dhs_dms_ctmerge_shared_reorder_meansig_noise ))))
 #hclust_cCRE_DTC = cutree(hclust_cCRE, k=15)
-hclust_cCRE_DTC = cutreeDynamic(hclust_cCRE, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(1 - cor(t( cbind(rep(0, dim(dhs_dms_ctmerge_shared_reorder_meansig_noise)[1]),dhs_dms_ctmerge_shared_reorder_meansig_noise) )))), method='hybrid')
+hclust_cCRE_DTC = cutreeDynamic(hclust_cCRE, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(1 - cosine(t( dhs_dms_ctmerge_shared_reorder_meansig_noise )))), method='hybrid')
 #print(table(hclust_cCRE_DTC))
 for (Ki in unique(hclust_cCRE_DTC)){
-	used_rows = which(hclust_cCRE_DTC==Ki)
-	for (i in 1:length(used_rows)){
-		for (j in 1:length(used_rows)){
-			KM_by_KM_SameClu_count[used_rows[i],used_rows[j]] = KM_by_KM_SameClu_count[used_rows[i],used_rows[j]]+1
-		}
-	}
+  used_rows = which(hclust_cCRE_DTC==Ki)
+  for (i in 1:length(used_rows)){
+    for (j in 1:length(used_rows)){
+      KM_by_KM_SameClu_count[used_rows[i],used_rows[j]] = KM_by_KM_SameClu_count[used_rows[i],used_rows[j]]+1
+    }
+  }
 }
 }
 ### count the number runs each row-pair are in the same cluster
@@ -371,6 +540,8 @@ dev.off()
 ### Use cutreeDynamic to cluster KMs
 hclust_bySameClu_count = hclust(dist(KM_by_KM_SameClu_count), method='complete')
 hclust_cCRE_DTC = cutreeDynamic(hclust_bySameClu_count, minClusterSize=1, deepSplit=4, dist= as.matrix(dist(KM_by_KM_SameClu_count)), method='hybrid')
+#hclust_cCRE_DTC = cutree(hclust_bySameClu_count, 10)
+
 #hclust_cCRE_DTC = as.numeric(names(hclust_cCRE_DTC))
 #hclust_cCRE_DTC = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig))
 table(hclust_cCRE_DTC)
@@ -385,9 +556,9 @@ all_cCREs_prediction_Y_Jmeta = all_cCREs_prediction_Y
 class(all_cCREs_prediction_Y_Jmeta) = 'numeric'
 KM_i = 0
 for (id_KM in unique(all_cCREs_prediction_Y)){
-	KM_i = KM_i+1
-	print(as.numeric(id_KM))
-	all_cCREs_prediction_Y_Jmeta[all_cCREs_prediction_Y==unique(all_cCREs_prediction_Y)[KM_i]] = hclust_cCRE_DTC_modified[KM_i]
+  KM_i = KM_i+1
+  print(as.numeric(id_KM))
+  all_cCREs_prediction_Y_Jmeta[all_cCREs_prediction_Y==unique(all_cCREs_prediction_Y)[KM_i]] = hclust_cCRE_DTC_modified[KM_i]
 }
 
 row_names_combined = paste(hclust_cCRE_DTC_modified, ':', unique(all_cCREs_prediction_Y), sep='')
@@ -395,19 +566,19 @@ rownames(dhs_dms_ctmerge_shared_reorder_meansig) = row_names_combined
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_H) = row_names_combined
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_M) = row_names_combined
 
-pdf('KMPCA.Joint.cluster.reproducible.pdf', height=10)
-plot_color_lim = 0.3
+pdf('KMPCA.Joint.cluster.reproducible.pdf', height=12)
+plot_color_lim = 0.4
 breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], color=my_colorbar, breaks = breaksList, cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], color=my_colorbar, breaks = breaksList, cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible_H.pdf', height=10)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_H[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_H[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible_M.pdf', height=10)
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_M[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_M[order(hclust_cCRE_DTC_modified),], cluster_col=T, cluster_rows=F, cutree_rows=20, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_cols = dist(1-cosine(dhs_dms_ctmerge_shared_reorder_meansig)/2 - cor(dhs_dms_ctmerge_shared_reorder_meansig)/2), cclustering_distance_rows=dist(1-cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 - cor(t(dhs_dms_ctmerge_shared_reorder_meansig))/2 ) )
 dev.off()
 
 png('cCRE_id_HM_count.png')
@@ -425,25 +596,35 @@ if (sum(hclust_cCRE_DTC_modified==i)==1){dhs_dms_ctmerge_shared_reorder_meansig_
 rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig) = unique(hclust_cCRE_DTC_modified)
 ###
 Jmet_order = as.numeric(rownames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)[hclust(dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))$order])
-pdf('KMPCA.Joint.cluster.reproducible.Jmet.pdf', height=5)
+pdf('KMPCA.Joint.cluster.reproducible.Jmet.pdf', height=6)
 dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot = dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig
 #dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot[dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig>0.3] = 0.3
-plot_color_lim = 0.2
-breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
-my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+plot_color_lim = 0.25
+#plot_color_lim = 100
+#breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
+breaksList = seq(min(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot), plot_color_lim, by = 0.001)
+my_colorbar=colorRampPalette(c('white', 'red'))(n = length(breaksList))
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+#pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 #################################################
 
 
+
 #################################################
 ### write table
-dh_with_JointClusterID_mat = cbind(dh[,c(1:6)], all_cCREs_prediction_Y_Jmeta[H_rows], dh[,-c(1:6)])
-dm_with_JointClusterID_mat = cbind(dm[,c(1:6)], all_cCREs_prediction_Y_Jmeta[M_rows], dm[,-c(1:6)])
-colnames(dh_with_JointClusterID_mat)[7] = 'J_meta'
-colnames(dm_with_JointClusterID_mat)[7] = 'J_meta'
+dh_with_JointClusterID_mat = cbind(dh[,c(1:5)], all_cCREs_prediction_Y[H_rows], all_cCREs_prediction_Y_Jmeta[H_rows], dh[,-c(1:6)])
+dm_with_JointClusterID_mat = cbind(dm[,c(1:5)], all_cCREs_prediction_Y[M_rows], all_cCREs_prediction_Y_Jmeta[M_rows], dm[,-c(1:6)])
+colnames(dh_with_JointClusterID_mat)[6] = 'Repro_C'
+colnames(dm_with_JointClusterID_mat)[6] = 'Repro_C'
+colnames(dh_with_JointClusterID_mat)[7] = 'JmC'
+colnames(dm_with_JointClusterID_mat)[7] = 'JmC'
+dm_with_JointClusterID_mat[94092:94102,1:8]
+dh_with_JointClusterID_mat[196784:196794,1:8]
 write.table(dh_with_JointClusterID_mat, 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.JclusterID.txt', quote=F, sep='\t', col.names=T, row.names=F)
 write.table(dm_with_JointClusterID_mat, 'S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.coe_mat.PDmerged.clusterID.JclusterID.txt', quote=F, sep='\t', col.names=T, row.names=F)
+write.table(dh_with_JointClusterID_mat[,c(1:3,7)], 'S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.clusterID.JclusterID.bed', quote=F, sep='\t', col.names=T, row.names=F)
+write.table(dm_with_JointClusterID_mat[,c(1:3,7)], 'S3V2_IDEAS_mm10_ccre2.cCRE.M.notall0.withid.clusterID.JclusterID.bed', quote=F, sep='\t', col.names=T, row.names=F)
 ###### ct esRP mat for RNA correlation analysis
 dh_with_JointClusterID_mat_ct = cbind(apply(cbind(dh[,1], as.character(dh[,2]), as.character(dh[,3])) ,1, function(x) paste(x, collapse='_')), dh[,c(1:6)], all_cCREs_prediction_Y_Jmeta[H_rows], dhs_ctmerge_shared_reorder)
 dm_with_JointClusterID_mat_ct = cbind(apply(cbind(dm[,1], as.character(dm[,2]), as.character(dm[,3])) ,1, function(x) paste(x, collapse='_')), dm[,c(1:6)], all_cCREs_prediction_Y_Jmeta[M_rows], dms_ctmerge_shared_reorder)
@@ -454,13 +635,13 @@ JMeta_vs_KM_M = t(apply(cbind(rownames(dhs_dms_ctmerge_shared_reorder_meansig_M)
 JMeta_count_H = c()
 JMeta_count_M = c()
 for (JMeta_i in unique(JMeta_vs_KM_H[,1])){
-	table_vec_names = as.numeric(names(table(dh_with_JointClusterID_mat$J_meta)))
-	JMeta_vs_KM_H_i = JMeta_vs_KM_H[is.element(JMeta_vs_KM_H[,1], JMeta_i),1]
-	JMeta_vs_KM_M_i = JMeta_vs_KM_M[is.element(JMeta_vs_KM_M[,1], JMeta_i),1]
-	print(c(JMeta_i, JMeta_vs_KM_H_i))
-	print(c(JMeta_i, JMeta_vs_KM_M_i))
-	JMeta_count_H = c(JMeta_count_H, sum(table(dh_with_JointClusterID_mat$J_meta)[is.element(table_vec_names, JMeta_vs_KM_H_i)]))
-	JMeta_count_M = c(JMeta_count_M, sum(table(dm_with_JointClusterID_mat$J_meta)[is.element(table_vec_names, JMeta_vs_KM_M_i)]))
+  table_vec_names = as.numeric(names(table(dh_with_JointClusterID_mat$J_meta)))
+  JMeta_vs_KM_H_i = JMeta_vs_KM_H[is.element(JMeta_vs_KM_H[,1], JMeta_i),1]
+  JMeta_vs_KM_M_i = JMeta_vs_KM_M[is.element(JMeta_vs_KM_M[,1], JMeta_i),1]
+  print(c(JMeta_i, JMeta_vs_KM_H_i))
+  print(c(JMeta_i, JMeta_vs_KM_M_i))
+  JMeta_count_H = c(JMeta_count_H, sum(table(dh_with_JointClusterID_mat$J_meta)[is.element(table_vec_names, JMeta_vs_KM_H_i)]))
+  JMeta_count_M = c(JMeta_count_M, sum(table(dm_with_JointClusterID_mat$J_meta)[is.element(table_vec_names, JMeta_vs_KM_M_i)]))
 }
 JMeta_count_H = cbind(unique(JMeta_vs_KM_H[,1]), JMeta_count_H)
 JMeta_count_M = cbind(unique(JMeta_vs_KM_M[,1]), JMeta_count_M)
@@ -472,6 +653,10 @@ colnames(JMeta_count_HM) = c('Human','Mouse')
 pdf('KMPCA.Joint.cluster.reproducible.Jmet.cCRE_count.pdf', height=5,width=3)
 pheatmap(log10(JMeta_count_HM), cluster_col=F, cluster_rows=T, cex=1.5, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
+
+cbind(94092:94102, dm_with_JointClusterID_mat[94092:94102,7], as.numeric(all_cCREs_prediction_Y[200342+(94092:94102)]), dms_ctmerge_shared_reorder[94092:94102,])
+cbind(196784:196794, dh_with_JointClusterID_mat[196784:196794,7], as.numeric(all_cCREs_prediction_Y[196784:196794]), dhs_ctmerge_shared_reorder[196784:196794,])
+#meta_cluster_mat[rownames(meta_cluster_mat)=='GATA1',]
 #################################################
 
 
@@ -544,9 +729,9 @@ hg38_gene = read.table('/Users/guanjuexiang/Documents/projects/analysis/0813_hum
 mm10_gene = read.table('/Users/guanjuexiang/Documents/projects/analysis/0813_human_mouse_state_compare_heatmap/mm10.gene.bed', header=F, sep='\t')
 ### mm10
 ### change Gata1 gene locus from
-# chrX	7959260	7978071	-	Gata1
+# chrX  7959260 7978071 - Gata1
 # to
-# chrX	7959260	7967910	-	Gata1 
+# chrX  7959260 7967910 - Gata1 
 mm10_gene[,5] = toupper(mm10_gene[,5])
 ###
 shared_genes = hg38_gene[is.element(hg38_gene[,5], mm10_gene[,5]),5]
@@ -592,14 +777,14 @@ cCRE_H_Jmeta = c()
 cCRE_M_Jmeta = c()
 ptm <- proc.time()
 for (i in 1:length(shared_genes)){
-	if (i%%1000==0){print(i)}
-	shared_genes_i = shared_genes[i]
-	bed_H = hg38_gene_shared_exp[i,1:3][1,]
-	bed_M = mm10_gene_shared_exp[i,1:3][1,]
-	JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3], 2.922063, FALSE)
-	meta_cluster_mat[i,] = JMeta_i$Jmet_score
-	if (dim(JMeta_i$cCRE_H)[1]>0){cCRE_H_Jmeta = rbind(cCRE_H_Jmeta, cbind(JMeta_i$cCRE_H, shared_genes_i))}
-	if (dim(JMeta_i$cCRE_M)[1]>0){cCRE_M_Jmeta = rbind(cCRE_M_Jmeta, cbind(JMeta_i$cCRE_M, shared_genes_i))}
+  if (i%%1000==0){print(i)}
+  shared_genes_i = shared_genes[i]
+  bed_H = hg38_gene_shared_exp[i,1:3][1,]
+  bed_M = mm10_gene_shared_exp[i,1:3][1,]
+  JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3], 2.922063, FALSE)
+  meta_cluster_mat[i,] = JMeta_i$Jmet_score
+  if (dim(JMeta_i$cCRE_H)[1]>0){cCRE_H_Jmeta = rbind(cCRE_H_Jmeta, cbind(JMeta_i$cCRE_H, shared_genes_i))}
+  if (dim(JMeta_i$cCRE_M)[1]>0){cCRE_M_Jmeta = rbind(cCRE_M_Jmeta, cbind(JMeta_i$cCRE_M, shared_genes_i))}
 }
 proc.time() - ptm
 ###
@@ -607,11 +792,11 @@ colnames(meta_cluster_mat) = rownames(JointCluster_count_HM)
 rownames(meta_cluster_mat) = shared_genes
 ### get enrichment threshold for each Jmet
 get_thresh = function(x){
-	xzp = pnorm((x-mean(x))/sd(x), lower.tail=F)
-	thresh0 = 0.05
-	thresh1 = 0.01
-	xzp = pnorm((x-mean(x[xzp>=thresh1]))/sd(x[xzp>=thresh1]), lower.tail=F)
-	return(min(x[xzp<thresh0]))
+  xzp = pnorm((x-mean(x))/sd(x), lower.tail=F)
+  thresh0 = 0.05
+  thresh1 = 0.01
+  xzp = pnorm((x-mean(x[xzp>=thresh1]))/sd(x[xzp>=thresh1]), lower.tail=F)
+  return(min(x[xzp<thresh0]))
 }
 meta_cluster_mat_thresh = apply(meta_cluster_mat,2,get_thresh)
 meta_cluster_mat_thresh
@@ -632,16 +817,16 @@ hg38_gene_shared_exp[hg38_gene_shared_exp[,5]=='CSF1R',2:3] = c(150036554, 15013
 ###
 ptm <- proc.time()
 for (i in 1:length(shared_genes)){
-	if (i%%1000==0){print(i)}
-	shared_genes_i = shared_genes[i]
-	bed_H = hg38_gene_shared_exp[i,1:3][1,]
-	bed_M = mm10_gene_shared_exp[i,1:3][1,]
-	JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3], meta_cluster_mat_thresh, TRUE)
-	meta_cluster_mat[i,] = JMeta_i$Jmet_score
-	meta_cluster_mat_H[i,] = JMeta_i$Jmet_score_H
-	meta_cluster_mat_M[i,] = JMeta_i$Jmet_score_M
-	if (dim(JMeta_i$cCRE_H)[1]>0){cCRE_H_Jmeta = rbind(cCRE_H_Jmeta, cbind(JMeta_i$cCRE_H, shared_genes_i))}
-	if (dim(JMeta_i$cCRE_M)[1]>0){cCRE_M_Jmeta = rbind(cCRE_M_Jmeta, cbind(JMeta_i$cCRE_M, shared_genes_i))}
+  if (i%%1000==0){print(i)}
+  shared_genes_i = shared_genes[i]
+  bed_H = hg38_gene_shared_exp[i,1:3][1,]
+  bed_M = mm10_gene_shared_exp[i,1:3][1,]
+  JMeta_i = get_Function_conserve_cCRE(bed_H[1,1], bed_H[1,2], bed_H[1,3], bed_M[1,1], bed_M[1,2], bed_M[1,3], meta_cluster_mat_thresh, TRUE)
+  meta_cluster_mat[i,] = JMeta_i$Jmet_score
+  meta_cluster_mat_H[i,] = JMeta_i$Jmet_score_H
+  meta_cluster_mat_M[i,] = JMeta_i$Jmet_score_M
+  if (dim(JMeta_i$cCRE_H)[1]>0){cCRE_H_Jmeta = rbind(cCRE_H_Jmeta, cbind(JMeta_i$cCRE_H, shared_genes_i))}
+  if (dim(JMeta_i$cCRE_M)[1]>0){cCRE_M_Jmeta = rbind(cCRE_M_Jmeta, cbind(JMeta_i$cCRE_M, shared_genes_i))}
 }
 proc.time() - ptm
 ###
@@ -661,8 +846,8 @@ meta_cluster_mat_log2 = log2(meta_cluster_mat+1)
 set.seed(2019)
 meta_cluster_mat_log2_km_ratio = c()
 for (k in 2:30){
-	meta_cluster_mat_log2_km_test = kmeans(meta_cluster_mat_log2, centers=k)
-	meta_cluster_mat_log2_km_ratio = c(meta_cluster_mat_log2_km_ratio, meta_cluster_mat_log2_km_test$tot.withinss/meta_cluster_mat_log2_km_test$betweenss)
+  meta_cluster_mat_log2_km_test = kmeans(meta_cluster_mat_log2, centers=k)
+  meta_cluster_mat_log2_km_ratio = c(meta_cluster_mat_log2_km_ratio, meta_cluster_mat_log2_km_test$tot.withinss/meta_cluster_mat_log2_km_test$betweenss)
 }
 pdf('KM_gene_Jmet_enrich.determineK.pdf')
 plot(2:30, meta_cluster_mat_log2_km_ratio, cex.axis=2)
@@ -674,7 +859,7 @@ set.seed(2019)
 meta_cluster_mat_log2_km = kmeans(meta_cluster_mat_log2, centers=15)
 meta_cluster_mat_log2_km_mean = c()
 for (i in as.numeric(names(table(meta_cluster_mat_log2_km$cluster)))){
-	meta_cluster_mat_log2_km_mean = rbind(meta_cluster_mat_log2_km_mean, colMeans(meta_cluster_mat_log2[meta_cluster_mat_log2_km$cluster==i,])) 
+  meta_cluster_mat_log2_km_mean = rbind(meta_cluster_mat_log2_km_mean, colMeans(meta_cluster_mat_log2[meta_cluster_mat_log2_km$cluster==i,])) 
 }
 rownames(meta_cluster_mat_log2_km_mean) = as.numeric(names(table(meta_cluster_mat_log2_km$cluster)))
 ### write gene-by-Jmet-enrichment matrix with Gene KM-ID
@@ -699,16 +884,37 @@ png('GeneGroup_by_JMeta.Joint.cluster.png', width = 1000, height = 600)
 meta_cluster_mat_GeneGroup_Jmet = c()
 used_order = Jmet_order
 for (coli in used_order){
-	meta_cluster_mat_GeneGroup_Jmet = cbind(meta_cluster_mat_GeneGroup_Jmet, meta_cluster_mat_log2_km_mean[,colnames(meta_cluster_mat)==coli])
+  meta_cluster_mat_GeneGroup_Jmet = cbind(meta_cluster_mat_GeneGroup_Jmet, meta_cluster_mat_log2_km_mean[,colnames(meta_cluster_mat)==coli])
 }
-colnames(meta_cluster_mat_GeneGroup_Jmet) = used_order
-rownames(meta_cluster_mat_GeneGroup_Jmet) = rownames(meta_cluster_mat_log2_km_mean)
+colnames(meta_cluster_mat_GeneGroup_Jmet) = paste('JmC_',used_order, sep='')
+rownames(meta_cluster_mat_GeneGroup_Jmet) = paste('GKM_', rownames(meta_cluster_mat_log2_km_mean), sep='')
 pheatmap((t(meta_cluster_mat_GeneGroup_Jmet)), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=T, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig), cex=1.5)
 dev.off()
+
+get_enriched_JmC_GKM_pairs = function(meta_cluster_mat_GeneGroup_Jmet){
+  meta_cluster_mat_GeneGroup_Jmet_z = (meta_cluster_mat_GeneGroup_Jmet-mean(meta_cluster_mat_GeneGroup_Jmet))/sd(meta_cluster_mat_GeneGroup_Jmet)
+  meta_cluster_mat_GeneGroup_Jmet_zp = pnorm(meta_cluster_mat_GeneGroup_Jmet_z, lower.tail=F)
+  meta_cluster_mat_GeneGroup_Jmet_zpfdr = p.adjust(meta_cluster_mat_GeneGroup_Jmet_zp, 'fdr')
+  min_lim = min(meta_cluster_mat_GeneGroup_Jmet[meta_cluster_mat_GeneGroup_Jmet_zpfdr<0.1])
+  ID_pair_list = c()
+  meta_cluster_mat_GeneGroup_Jmet_binary = meta_cluster_mat_GeneGroup_Jmet>=min_lim
+  for (i in 1:dim(meta_cluster_mat_GeneGroup_Jmet_binary)[1]){
+  for (j in 1:dim(meta_cluster_mat_GeneGroup_Jmet_binary)[2]){
+  if (meta_cluster_mat_GeneGroup_Jmet_binary[i,j]){
+  ID_pair_list = rbind(ID_pair_list, c(colnames(meta_cluster_mat_GeneGroup_Jmet_binary)[j], rownames(meta_cluster_mat_GeneGroup_Jmet_binary)[i]))
+  }
+  }  
+  }
+  return(ID_pair_list)
+}
+meta_cluster_mat_GeneGroup_Jmet_ID_pairs = get_enriched_JmC_GKM_pairs(meta_cluster_mat_GeneGroup_Jmet)
+write.table(meta_cluster_mat_GeneGroup_Jmet_ID_pairs, 'enriched_JmC_ID_KM_ID.txt', sep='\t', quote=F, col.names=F, row.names=F)
+
+
 ### get binary enrichment based on GeneGroup
 meta_cluster_mat_GeneGroup_Jmet_vec = c(meta_cluster_mat_GeneGroup_Jmet)
 for (i in 1:10){
-	print(length(meta_cluster_mat_GeneGroup_Jmet_vec))
+  print(length(meta_cluster_mat_GeneGroup_Jmet_vec))
 #meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr = p.adjust(pnorm((meta_cluster_mat_GeneGroup_Jmet_vec - mean(meta_cluster_mat_GeneGroup_Jmet_vec)) / sd(meta_cluster_mat_GeneGroup_Jmet_vec), lower.tail=F), 'fdr')
 #meta_cluster_mat_GeneGroup_Jmet_vec = meta_cluster_mat_GeneGroup_Jmet_vec[meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr>=0.1]
 meta_cluster_mat_GeneGroup_Jmet_vec_zp_fdr = pnorm((meta_cluster_mat_GeneGroup_Jmet_vec - mean(meta_cluster_mat_GeneGroup_Jmet_vec)) / sd(meta_cluster_mat_GeneGroup_Jmet_vec), lower.tail=F)
@@ -720,22 +926,22 @@ meta_cluster_mat_GeneGroup_Jmet_zp_01 = t((apply(meta_cluster_mat_GeneGroup_Jmet
 meta_cluster_mat_GeneGroup_Jmet_zp_01
 ### 
 #png('Gene_by_JMeta.Joint.cluster.png', width = 1000, height = 500)
-pdf('Gene_by_JMeta.Joint.cluster.pdf', height=5, width=9)
+pdf('Gene_by_JMeta.Joint.cluster.pdf', height=5.8, width=9)
 meta_cluster_mat_plot = c()
 used_order = Jmet_order
 for (coli in used_order){
-	meta_cluster_mat_plot = cbind(meta_cluster_mat_plot, meta_cluster_mat[,colnames(meta_cluster_mat)==coli])
+  meta_cluster_mat_plot = cbind(meta_cluster_mat_plot, meta_cluster_mat[,colnames(meta_cluster_mat)==coli])
 }
 colnames(meta_cluster_mat_plot) = used_order
 rownames(meta_cluster_mat_plot) = rownames(meta_cluster_mat)
 meta_cluster_mat_plot = meta_cluster_mat_plot[order(meta_cluster_mat_log2_km$cluster),]
-pheatmap(log2(t(meta_cluster_mat_plot)+1), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=F, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
+pheatmap(log2(t(meta_cluster_mat_plot)+1), cex=1.8, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=F, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
 dev.off()
 pdf('Gene_by_JMeta.Joint.cluster_H.pdf', height=5, width=9)
 meta_cluster_mat_plot_H = c()
 used_order = Jmet_order
 for (coli in used_order){
-	meta_cluster_mat_plot_H = cbind(meta_cluster_mat_plot_H, meta_cluster_mat_H[,colnames(meta_cluster_mat)==coli])
+  meta_cluster_mat_plot_H = cbind(meta_cluster_mat_plot_H, meta_cluster_mat_H[,colnames(meta_cluster_mat)==coli])
 }
 colnames(meta_cluster_mat_plot_H) = used_order
 rownames(meta_cluster_mat_plot_H) = rownames(meta_cluster_mat)
@@ -746,7 +952,7 @@ pdf('Gene_by_JMeta.Joint.cluster_M.pdf', height=5, width=9)
 meta_cluster_mat_plot_M = c()
 used_order = Jmet_order
 for (coli in used_order){
-	meta_cluster_mat_plot_M = cbind(meta_cluster_mat_plot_M, meta_cluster_mat_M[,colnames(meta_cluster_mat)==coli])
+  meta_cluster_mat_plot_M = cbind(meta_cluster_mat_plot_M, meta_cluster_mat_M[,colnames(meta_cluster_mat)==coli])
 }
 colnames(meta_cluster_mat_plot_M) = used_order
 rownames(meta_cluster_mat_plot_M) = rownames(meta_cluster_mat)
@@ -755,8 +961,8 @@ pheatmap(log2(t(meta_cluster_mat_plot_M^2)+1), cex=2, cluster_col=F, cluster_row
 dev.off()
 
 get_r2 = function(y1, y2){
-	r2 = 1-sum(2*(y1-y2)^2)/sum((mean(y1)-y1)^2+(mean(y2)-y2)^2)
-	return(r2)
+  r2 = 1-sum(2*(y1-y2)^2)/sum((mean(y1)-y1)^2+(mean(y2)-y2)^2)
+  return(r2)
 }
 
 for (i in 1:dim(meta_cluster_mat_plot_H)[2]){
@@ -798,6 +1004,19 @@ print(cor(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec))
 heatscatter((meta_cluster_mat_plot_H_vec+1), (meta_cluster_mat_plot_M_vec+1), xlim=plot_lim_i, ylim=plot_lim_i, log='xy')
 abline(0,1)
 dev.off()
+
+png(paste0('Gene_enrich.blackscatterplot.all.png'))
+#heatscatter(A_gene_enrich[used_id], M_gene_enrich[used_id], ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich))))
+#abline(h=0)
+plot_lim_i = c(min(c(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)), max(c(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec)))+1
+print(cor(meta_cluster_mat_plot_H_vec, meta_cluster_mat_plot_M_vec))
+#enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec * enrich_lm_adj$coefficients[2] + enrich_lm_adj$coefficients[1]
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec / mean(meta_cluster_mat_plot_M_vec) * mean(meta_cluster_mat_plot_H_vec) 
+plot((meta_cluster_mat_plot_H_vec+1), (meta_cluster_mat_plot_M_vec+1), xlim=plot_lim_i, ylim=plot_lim_i, log='xy', pch=16)
+abline(0,1, col='red')
+dev.off()
+###
 png('Gene_enrich.MAplot.png')
 meta_cluster_mat_plot_H_vec = as.numeric(c(meta_cluster_mat_plot_H[,used_col_for_plotting_MAplot]))
 meta_cluster_mat_plot_M_vec = as.numeric(c(meta_cluster_mat_plot_M[,used_col_for_plotting_MAplot]))
@@ -806,10 +1025,30 @@ enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
 #meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec / mean(meta_cluster_mat_plot_M_vec) * mean(meta_cluster_mat_plot_H_vec) 
 M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+1)/(meta_cluster_mat_plot_M_vec+1))
 A_gene_enrich = log2((meta_cluster_mat_plot_H_vec+1)*(meta_cluster_mat_plot_M_vec+1))
+set.seed(2022)
 used_id = sample(length(A_gene_enrich), 10000)
-heatscatter(A_gene_enrich[used_id], M_gene_enrich[used_id], ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich))), cex.axis=2)
+heatscatter(A_gene_enrich[used_id], M_gene_enrich[used_id], cex.axis=2, ylim = c(-5, 5)) #, ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich)))
 abline(h=0)
 abline(v=0)
+abline(h=2, lty=2)
+abline(h=-2, lty=2)
+dev.off()
+
+png('Gene_enrich.MAplot.black.png')
+meta_cluster_mat_plot_H_vec = as.numeric(c(meta_cluster_mat_plot_H[,used_col_for_plotting_MAplot]))
+meta_cluster_mat_plot_M_vec = as.numeric(c(meta_cluster_mat_plot_M[,used_col_for_plotting_MAplot]))
+enrich_lm_adj = lm(meta_cluster_mat_plot_H_vec~meta_cluster_mat_plot_M_vec)
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec * enrich_lm_adj$coefficients[2] + enrich_lm_adj$coefficients[1]
+#meta_cluster_mat_plot_M_vec_adj = meta_cluster_mat_plot_M_vec / mean(meta_cluster_mat_plot_M_vec) * mean(meta_cluster_mat_plot_H_vec) 
+M_gene_enrich = log2((meta_cluster_mat_plot_H_vec+1)/(meta_cluster_mat_plot_M_vec+1))
+A_gene_enrich = log2((meta_cluster_mat_plot_H_vec+1)*(meta_cluster_mat_plot_M_vec+1))
+set.seed(2022)
+used_id = sample(length(A_gene_enrich), 10000)
+plot(A_gene_enrich[used_id], M_gene_enrich[used_id], cex.axis=2, ylim = c(-5, 5), pch=16) #, ylim = c(-max(abs(M_gene_enrich)), max(abs(M_gene_enrich)))
+abline(h=0, col='red')
+abline(v=0)
+abline(h=2, lty=2)
+abline(h=-2, lty=2)
 dev.off()
 #################################################
 
@@ -901,14 +1140,14 @@ cCRE_H_Jmeta_withMSF_hg38_regions_S = rep(0, dim(cCRE_H_Jmeta_withMSF_hg38_regio
 #all_genes_hg38 = unique(cCRE_H_Jmeta_withMSF_hg38_regions[,6])
 #kkk = 0
 #for (gene_i in all_genes_hg38){
-#	if (kkk%%1000==0){print(kkk)}
-#	kkk = kkk+1
-#	### get mm10 cCRE MID in gene_i
-#	cCRE_M_Jmeta_withMSF_mm10_regions_gene_i = cCRE_M_Jmeta_withMSF_mm10_regions[cCRE_M_Jmeta_withMSF_mm10_regions[,6]==gene_i,7]
-#	### get hg38 cCRE MID in gene_i
-#	cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i = cCRE_H_Jmeta_withMSF_hg38_regions[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i,8]
-#	### define the S cCRE 
-#	cCRE_H_Jmeta_withMSF_hg38_regions_S[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i] = is.element(cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i, cCRE_M_Jmeta_withMSF_mm10_regions_gene_i)*1
+# if (kkk%%1000==0){print(kkk)}
+# kkk = kkk+1
+# ### get mm10 cCRE MID in gene_i
+# cCRE_M_Jmeta_withMSF_mm10_regions_gene_i = cCRE_M_Jmeta_withMSF_mm10_regions[cCRE_M_Jmeta_withMSF_mm10_regions[,6]==gene_i,7]
+# ### get hg38 cCRE MID in gene_i
+# cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i = cCRE_H_Jmeta_withMSF_hg38_regions[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i,8]
+# ### define the S cCRE 
+# cCRE_H_Jmeta_withMSF_hg38_regions_S[cCRE_H_Jmeta_withMSF_hg38_regions[,6]==gene_i] = is.element(cCRE_H_Jmeta_withMSF_hg38_regions_MID_gene_i, cCRE_M_Jmeta_withMSF_mm10_regions_gene_i)*1
 #}
 ###
 cCRE_H_Jmeta_withMSF_hg38_regions_S = (!is.na(cCRE_H_Jmeta_withMSF_hg38_regions$MID))*1
@@ -925,14 +1164,14 @@ cCRE_M_Jmeta_withHSF_mm10_regions_S = rep(0, dim(cCRE_M_Jmeta_withHSF_mm10_regio
 #all_genes_hg38 = unique(cCRE_M_Jmeta_withHSF_mm10_regions[,6])
 #kkk = 0
 #for (gene_i in all_genes_hg38){
-#	if (kkk%%1000==0){print(kkk)}
-#	kkk = kkk+1
-#	### get mm10 cCRE MID in gene_i
-#	cCRE_H_Jmeta_withHSF_hg38_regions_gene_i = cCRE_H_Jmeta_withHSF_hg38_regions[cCRE_H_Jmeta_withHSF_hg38_regions[,6]==gene_i,7]
-#	### get hg38 cCRE MID in gene_i
-#	cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i = cCRE_M_Jmeta_withHSF_mm10_regions[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i,8]
-#	### define the S cCRE 
-#	cCRE_M_Jmeta_withHSF_mm10_regions_S[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i] = is.element(cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i, cCRE_H_Jmeta_withHSF_hg38_regions_gene_i)*1
+# if (kkk%%1000==0){print(kkk)}
+# kkk = kkk+1
+# ### get mm10 cCRE MID in gene_i
+# cCRE_H_Jmeta_withHSF_hg38_regions_gene_i = cCRE_H_Jmeta_withHSF_hg38_regions[cCRE_H_Jmeta_withHSF_hg38_regions[,6]==gene_i,7]
+# ### get hg38 cCRE MID in gene_i
+# cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i = cCRE_M_Jmeta_withHSF_mm10_regions[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i,8]
+# ### define the S cCRE 
+# cCRE_M_Jmeta_withHSF_mm10_regions_S[cCRE_M_Jmeta_withHSF_mm10_regions[,6]==gene_i] = is.element(cCRE_M_Jmeta_withHSF_mm10_regions_HID_gene_i, cCRE_H_Jmeta_withHSF_hg38_regions_gene_i)*1
 #}
 ###
 cCRE_M_Jmeta_withHSF_mm10_regions_S = (!is.na(cCRE_M_Jmeta_withHSF_mm10_regions$HID))*1
@@ -970,15 +1209,15 @@ system(bedtools5)
 #################################################
 ### add Gene Jmet enrichment KM cluster ID
 add_Gene_KMID = function(input_mat_file, output_mat_file, meta_cluster_mat_log2_km, cCRE_HM_Jmeta_withMSF_hg38mm10_regions_set1) {
-	cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS = read.table(input_mat_file, header=F)
-	cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM = rep(0,dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS)[1])
-	for (gene_i in unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS[,6])){
-	cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS[,6]==gene_i] = meta_cluster_mat_log2_km$cluster[names(meta_cluster_mat_log2_km$cluster)==gene_i]
-	}
-	cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat = cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS, cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM)
-	colnames(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat) = c(colnames(cCRE_HM_Jmeta_withMSF_hg38mm10_regions_set1), 'TSS', 'GeneKMID')
-	write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat, output_mat_file, quote=F, sep='\t', col.names=T, row.names=F)
-	return(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat)
+  cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS = read.table(input_mat_file, header=F)
+  cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM = rep(0,dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS)[1])
+  for (gene_i in unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS[,6])){
+  cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS[,6]==gene_i] = meta_cluster_mat_log2_km$cluster[names(meta_cluster_mat_log2_km$cluster)==gene_i]
+  }
+  cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat = cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS, cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM)
+  colnames(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat) = c(colnames(cCRE_HM_Jmeta_withMSF_hg38mm10_regions_set1), 'TSS', 'GeneKMID')
+  write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat, output_mat_file, quote=F, sep='\t', col.names=T, row.names=F)
+  return(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat)
 }
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38 = add_Gene_KMID('cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.bed', 'cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.GeneKMID.bed', meta_cluster_mat_log2_km, cCRE_H_Jmeta_withMSF_hg38_regions_set1)
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10 = add_Gene_KMID('cCRE.Gene50KB.mm10.JmetID.FS01.geneName.MID.HID.S01.TSS.bed', 'cCRE.Gene50KB.mm10.JmetID.FS01.geneName.MID.HID.S01.TSS.GeneKMID.bed', meta_cluster_mat_log2_km, cCRE_M_Jmeta_withHSF_mm10_regions_set1)
@@ -995,14 +1234,14 @@ cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38[cCRE_gene_JmetID_
 #################################################
 ### get F01 based on Gene Kmeans clusters
 add_F01_KM = function(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat, meta_cluster_mat_GeneGroup_Jmet_zp_01){
-	F01KM = rep(0, dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat)[1])
-	for (i in as.numeric(colnames(meta_cluster_mat_GeneGroup_Jmet_zp_01))){
-		print(i)
-		meta_cluster_mat_GeneGroup_Jmet_zp_01_i = as.numeric(rownames(meta_cluster_mat_GeneGroup_Jmet_zp_01)[meta_cluster_mat_GeneGroup_Jmet_zp_01[,i]==1])
-		meta_cluster_mat_GeneGroup_Jmet_zp_01_i_binary = is.element(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat$JmetID, meta_cluster_mat_GeneGroup_Jmet_zp_01_i) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat$GeneKMID==i)
-		F01KM[meta_cluster_mat_GeneGroup_Jmet_zp_01_i_binary] = 1
-	}
-	return(F01KM)
+  F01KM = rep(0, dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat)[1])
+  for (i in as.numeric(colnames(meta_cluster_mat_GeneGroup_Jmet_zp_01))){
+    print(i)
+    meta_cluster_mat_GeneGroup_Jmet_zp_01_i = as.numeric(rownames(meta_cluster_mat_GeneGroup_Jmet_zp_01)[meta_cluster_mat_GeneGroup_Jmet_zp_01[,i]==1])
+    meta_cluster_mat_GeneGroup_Jmet_zp_01_i_binary = is.element(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat$JmetID, meta_cluster_mat_GeneGroup_Jmet_zp_01_i) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat$GeneKMID==i)
+    F01KM[meta_cluster_mat_GeneGroup_Jmet_zp_01_i_binary] = 1
+  }
+  return(F01KM)
 }
 ### get F01 based on Gene Kmeans clusters
 hg38_F01KM = add_F01_KM(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38, meta_cluster_mat_GeneGroup_Jmet_zp_01)
@@ -1036,18 +1275,18 @@ unique_ct = unique(RNA_mat_ct_list)
 RNA_mat_ct_ave = matrix(0, nrow=dim(RNA_mat)[1], ncol=length(unique_ct))
 k = 0
 for (ct in unique_ct){
-	k = k+1
-	if (sum(RNA_mat_ct_list==ct)>1){
-		RNA_mat_ct_ave[,k] = rowMeans(RNA_mat_sig[,RNA_mat_ct_list==ct])
-	} else{
-		RNA_mat_ct_ave[,k] = RNA_mat_sig[,RNA_mat_ct_list==ct]
-	}
+  k = k+1
+  if (sum(RNA_mat_ct_list==ct)>1){
+    RNA_mat_ct_ave[,k] = rowMeans(RNA_mat_sig[,RNA_mat_ct_list==ct])
+  } else{
+    RNA_mat_ct_ave[,k] = RNA_mat_sig[,RNA_mat_ct_list==ct]
+  }
 }
 colnames(RNA_mat_ct_ave) = unique_ct
 ### shared ct with HM_cts
 RNA_mat_ct_ave_shared = c()
 for (ct_i in colnames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)[-1]){
-	RNA_mat_ct_ave_shared = cbind(RNA_mat_ct_ave_shared, RNA_mat_ct_ave[,colnames(RNA_mat_ct_ave)==ct_i])
+  RNA_mat_ct_ave_shared = cbind(RNA_mat_ct_ave_shared, RNA_mat_ct_ave[,colnames(RNA_mat_ct_ave)==ct_i])
 }
 #RNA_mat_ct_ave_shared = RNA_mat_ct_ave[,is.element(colnames(RNA_mat_ct_ave), colnames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))]
 RNA_mat_ct_ave_shared_ave = rowMeans(RNA_mat_ct_ave_shared)
@@ -1055,13 +1294,13 @@ RNA_mat_ct_ave_shared = cbind(RNA_mat_ct_ave_shared_ave, RNA_mat_ct_ave_shared)
 colnames(RNA_mat_ct_ave_shared) = c(colnames(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))
 ### log QTnorm
 quantile_norm = function(x){
-	xm = (x[,1])
-	refsig_sort = xm[order(xm)]
-	for (i in 1:dim(x)[2]){
-		sigtmp = x[,i]
-		x[,i] = refsig_sort[rank(sigtmp)]
-	}
-	return(x)
+  xm = (x[,1])
+  refsig_sort = xm[order(xm)]
+  for (i in 1:dim(x)[2]){
+    sigtmp = x[,i]
+    x[,i] = refsig_sort[rank(sigtmp)]
+  }
+  return(x)
 }
 smallnum = 1e-1 
 RNA_mat_ct_ave_shared_logqtnorm = quantile_norm(log(RNA_mat_ct_ave_shared+smallnum))
@@ -1090,10 +1329,10 @@ colnames(gene_RNA_Jmet_cor_plot_df_merge_plot) = 1:dim(dhs_dms_ctmerge_shared_re
 gene_RNA_Jmet_cor_plot_df_merge_plot1 = c()
 used_order = Jmet_order
 for (coli in used_order){
-	gene_RNA_Jmet_cor_plot_df_merge_plot1 = cbind(gene_RNA_Jmet_cor_plot_df_merge_plot1, gene_RNA_Jmet_cor_plot_df_merge_plot[,colnames(gene_RNA_Jmet_cor_plot_df_merge_plot)==coli])
+  gene_RNA_Jmet_cor_plot_df_merge_plot1 = cbind(gene_RNA_Jmet_cor_plot_df_merge_plot1, gene_RNA_Jmet_cor_plot_df_merge_plot[,colnames(gene_RNA_Jmet_cor_plot_df_merge_plot)==coli])
 }
 colnames(gene_RNA_Jmet_cor_plot_df_merge_plot1) = used_order
-png('gene_Jmet_RNA_esRP_cor.png', width = 1000, height = 600)
+pdf('gene_Jmet_RNA_esRP_cor.pdf', height=5, width=9)
 pheatmap(t(abs(gene_RNA_Jmet_cor_plot_df_merge_plot1)), cluster_col=F, cluster_rows=F, show_colnames=F, cex=2)
 dev.off()
 ###
@@ -1111,11 +1350,11 @@ print(gene_RNA_Jmet_cor[rownames(gene_RNA_Jmet_cor)=='GATA1',])
 #Jmet_gene_pairs = unique(cbind(as.data.frame(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$Jmet), cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$GeneName))
 #hg38_Jmet_RNA_cor = rep(0, dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38)[1])
 #for (i in 1:dim(Jmet_gene_pairs)[1]){
-#	if (i%%10000==0){print(i)}
-#	if (sum(rownames(gene_RNA_Jmet_cor)==Jmet_gene_pairs[i,2])>0){
-#	used_rows = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$Jmet==Jmet_gene_pairs[i,1] & cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$GeneName==Jmet_gene_pairs[i,2]
-#	hg38_Jmet_RNA_cor[used_rows] = gene_RNA_Jmet_cor[rownames(gene_RNA_Jmet_cor)==Jmet_gene_pairs[i,2],Jmet_gene_pairs[i,1]]
-#	}
+# if (i%%10000==0){print(i)}
+# if (sum(rownames(gene_RNA_Jmet_cor)==Jmet_gene_pairs[i,2])>0){
+# used_rows = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$Jmet==Jmet_gene_pairs[i,1] & cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38$GeneName==Jmet_gene_pairs[i,2]
+# hg38_Jmet_RNA_cor[used_rows] = gene_RNA_Jmet_cor[rownames(gene_RNA_Jmet_cor)==Jmet_gene_pairs[i,2],Jmet_gene_pairs[i,1]]
+# }
 #}
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor = cbind(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38, hg38_Jmet_RNA_cor)
 ### get esRP RNAlogTPM cor
@@ -1133,18 +1372,18 @@ cCRE_esRPmat_withNoise = cCRE_esRPmat + matrix(runif(dim(cCRE_esRPmat)[1]*dim(cC
 ptm <- proc.time()
 cCRE_gene_esRP_RNA_cor = rep(-100,dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_withPKID)[1])
 for (i in 1:dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_withPKID)[1]){
-	if (i%%10000==0){print(i)}
-	gene_i = cCRE_gene_genes[i]
-	cCRE_i = cCRE_gene_PKID[i]
-	if (is.element(gene_i, RNA_mat_genes)){
-	cCRE_esRP_i = cCRE_esRPmat_withNoise[cCRE_PKID==cCRE_i,]
-	RNA_tpm_i = RNA_mat_ct_ave_shared_logqtnorm_used[RNA_mat_genes==gene_i,]
-	if (!is.null(dim(RNA_tpm_i))){
-			cCRE_gene_esRP_RNA_cor[i] = cor(as.numeric(cCRE_esRP_i), RNA_tpm_i[1,])
-		} else{
-			cCRE_gene_esRP_RNA_cor[i] = cor(as.numeric(cCRE_esRP_i), RNA_tpm_i)
-		}
-	}
+  if (i%%10000==0){print(i)}
+  gene_i = cCRE_gene_genes[i]
+  cCRE_i = cCRE_gene_PKID[i]
+  if (is.element(gene_i, RNA_mat_genes)){
+  cCRE_esRP_i = cCRE_esRPmat_withNoise[cCRE_PKID==cCRE_i,]
+  RNA_tpm_i = RNA_mat_ct_ave_shared_logqtnorm_used[RNA_mat_genes==gene_i,]
+  if (!is.null(dim(RNA_tpm_i))){
+      cCRE_gene_esRP_RNA_cor[i] = cor(as.numeric(cCRE_esRP_i), RNA_tpm_i[1,])
+    } else{
+      cCRE_gene_esRP_RNA_cor[i] = cor(as.numeric(cCRE_esRP_i), RNA_tpm_i)
+    }
+  }
 }
 proc.time() - ptm
 ###
@@ -1159,8 +1398,8 @@ exclude_TSS = (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RN
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) | (!exclude_TSS)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'SF'
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) | (!exclude_TSS)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==0) ] = 'F'
 #cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==0) & (exclude_TSS)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'S'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID!='X') ] = 'SFJ'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID=='X') ] = 'SJ'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID!='X') ] = 'SF+'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID=='X') ] = 'S+'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==0) ] = 'J'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) ] = 'S'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor$MID!='X')] = 'SF'
@@ -1174,22 +1413,22 @@ cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[cC
 meta_cluster_mat_log2_df[meta_cluster_mat_log2_df$shared_genes=='CSF1R',]
 write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat, 'cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.GeneKMID.RNAcor.SFNID.bed', quote=F, sep='\t', col.names=T, row.names=F)
 ### Gene cor of 'SF','F','S','N' of each gene
-SFN_ID_list = c('SFJ','SF','SJ','S','J','N')
+SFN_ID_list = c('SF+','SF','S+','S','J','N')
 score_mat = matrix(0, nrow = length(unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$GeneName)), ncol=length(SFN_ID_list))
 k = 0
 for (gene_i in unique(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$GeneName)){
-	k = k+1
-	if (k%%1000==0){print(k)}
-	SFN_mat_gene_i = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$GeneName==gene_i,]
-	SFN_mat_gene_i_dat = unique(SFN_mat_gene_i[,c(4,5,9,12,13,2)])
-	score_mat_i = rep(-100, length(SFN_ID_list))
-	for (j in 1:length(SFN_ID_list)){
-		id = SFN_ID_list[j]
-		if (sum(SFN_mat_gene_i_dat$SFNID==id)>0){
-			score_mat_i[j] = mean(SFN_mat_gene_i_dat[SFN_mat_gene_i_dat$SFNID==id,4], na.rm=T)
-		} 
-	}
-	score_mat[k,] = score_mat_i
+  k = k+1
+  if (k%%1000==0){print(k)}
+  SFN_mat_gene_i = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$GeneName==gene_i,]
+  SFN_mat_gene_i_dat = unique(SFN_mat_gene_i[,c(4,5,9,12,13,2)])
+  score_mat_i = rep(-100, length(SFN_ID_list))
+  for (j in 1:length(SFN_ID_list)){
+    id = SFN_ID_list[j]
+    if (sum(SFN_mat_gene_i_dat$SFNID==id)>0){
+      score_mat_i[j] = mean(SFN_mat_gene_i_dat[SFN_mat_gene_i_dat$SFNID==id,4], na.rm=T)
+    } 
+  }
+  score_mat[k,] = score_mat_i
 }
 
 
@@ -1205,24 +1444,24 @@ score_mat11[score_mat11==-100]=NA
 wilcox.test(score_mat11[,1], score_mat11[,2], alternative='greater', paired=T)
 wilcox.test(score_mat11[,3], score_mat11[,4], alternative='greater', paired=T)
 wilcox.test(score_mat11[,5], score_mat11[,6], alternative='greater', paired=T)
-	Wilcoxon signed rank test with continuity correction
+  Wilcoxon signed rank test with continuity correction
 
 data:  score_mat11[, 1] and score_mat11[, 2]
-V = 7404440, p-value = 0.001
+V = 9482405, p-value = 1.615e-12
 alternative hypothesis: true location shift is greater than 0
 
 
-	Wilcoxon signed rank test with continuity correction
+  Wilcoxon signed rank test with continuity correction
 
 data:  score_mat11[, 3] and score_mat11[, 4]
-V = 20690241, p-value = 0.000000002
+V = 27795990, p-value < 2.2e-16
 alternative hypothesis: true location shift is greater than 0
 
 
-	Wilcoxon signed rank test with continuity correction
+  Wilcoxon signed rank test with continuity correction
 
 data:  score_mat11[, 5] and score_mat11[, 6]
-V = 14497091, p-value = 0.000000000005
+V = 18981879, p-value < 2.2e-16
 alternative hypothesis: true location shift is greater than 0
 
 
@@ -1246,25 +1485,26 @@ wilcox.test(score_mat11_02[,1], score_mat11_02[,2], alternative='greater', paire
 wilcox.test(score_mat11_02[,3], score_mat11_02[,4], alternative='greater', paired=T)
 wilcox.test(score_mat11_02[,5], score_mat11_02[,6], alternative='greater', paired=T)
 
-	Wilcoxon signed rank test with continuity correction
+  Wilcoxon signed rank test with continuity correction
 
 data:  score_mat11_02[, 1] and score_mat11_02[, 2]
-V = 164152, p-value = 0.0000000006
+V = 197576, p-value = 3.229e-14
 alternative hypothesis: true location shift is greater than 0
 
 
-	Wilcoxon signed rank test with continuity correction
+  Wilcoxon signed rank test with continuity correction
 
 data:  score_mat11_02[, 3] and score_mat11_02[, 4]
-V = 359601, p-value <0.0000000000000002
+V = 544941, p-value < 2.2e-16
 alternative hypothesis: true location shift is greater than 0
 
 
-	Wilcoxon signed rank test with continuity correction
+  Wilcoxon signed rank test with continuity correction
 
 data:  score_mat11_02[, 5] and score_mat11_02[, 6]
-V = 243517, p-value <0.0000000000000002
+V = 326251, p-value < 2.2e-16
 alternative hypothesis: true location shift is greater than 0
+
 
 #pdf('corabs_SFN_mat.box.dif.pdf')
 #boxplot(score_mat[used_rows,]-score_mat[used_rows,4], cex.axis=2)
@@ -1274,8 +1514,8 @@ alternative hypothesis: true location shift is greater than 0
 ########################
 ### add SFNID to mm10
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN = rep('N', dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10)[1])
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID!='X') & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID)) ] = 'SFJ'
-cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID=='X') ] = 'SJ'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID!='X') & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID)) ] = 'SF+'
+cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID=='X') ] = 'S+'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==1) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==0)] = 'J'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1)] = 'S'
 cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN[(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$F01==0) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$GeneS01==1) & (!is.na(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID)) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10$HID!='X')] = 'SF'
@@ -1288,17 +1528,42 @@ exclude_TSS_mm10 = (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm
 ###
 write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat, 'cCRE.Gene50KB.mm10.JmetID.FS01.geneName.MID.HID.S01.TSS.GeneKMID.SFNID.bed', quote=F, sep='\t', col.names=T, row.names=F)
 write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,colnames(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat)!='RNAcor'], 'cCRE.Gene50KB.hg38.JmetID.FS01.geneName.HID.MID.S01.TSS.GeneKMID.SFNID.bed', quote=F, sep='\t', col.names=T, row.names=F)
+write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat[,c(1:4,11,6,12)], 'cCRE.Gene50KB.mm10.JmC_ID.geneName.GeneKMID.SFN+_ID.bed', quote=F, sep='\t', col.names=T, row.names=F)
+write.table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,c(1:4,11,6,13)], 'cCRE.Gene50KB.hg38.JmC_ID.geneName.GeneKMID.SFN+_ID.bed', quote=F, sep='\t', col.names=T, row.names=F)
+### save enriched JmC-GKM pairs
+JmC_GKM_pairs0 = read.table('enriched_JmC_ID_KM_ID.txt', header=F)
+JmC_GKM_pairs1 = t(apply(JmC_GKM_pairs0, 1, function(x) c(unlist(strsplit(x[1], '_')), unlist(strsplit(x[2], '_'))) ))
+JmC_GKM_pairs2 = apply(JmC_GKM_pairs1, 1, function(x) paste(x[2], x[4], sep='_'))
+###
+JmC_GKM_pairs_hg38 = read.table('cCRE.Gene50KB.hg38.JmC_ID.geneName.GeneKMID.SFN+_ID.bed', header=T)
+JmC_GKM_pairs_hg38_ID = apply(JmC_GKM_pairs_hg38, 1, function(x) paste(as.numeric(x[4]), as.numeric(x[5]), sep='_'))
+JmC_GKM_pairs_hg38_enriched = JmC_GKM_pairs_hg38[is.element(JmC_GKM_pairs_hg38_ID, JmC_GKM_pairs2),]
+write.table(JmC_GKM_pairs_hg38_enriched, 'cCRE.Gene50KB.hg38.JmC_ID.geneName.GeneKMID.SFN+_ID.enriched.bed', quote=F, sep='\t', col.names=T, row.names=F)
+###
+JmC_GKM_pairs_mm10 = read.table('cCRE.Gene50KB.mm10.JmC_ID.geneName.GeneKMID.SFN+_ID.bed', header=T)
+JmC_GKM_pairs_mm10_ID = apply(JmC_GKM_pairs_mm10, 1, function(x) paste(as.numeric(x[4]), as.numeric(x[5]), sep='_'))
+JmC_GKM_pairs_mm10_enriched = JmC_GKM_pairs_mm10[is.element(JmC_GKM_pairs_mm10_ID, JmC_GKM_pairs2),]
+write.table(JmC_GKM_pairs_mm10_enriched, 'cCRE.Gene50KB.mm10.JmC_ID.geneName.GeneKMID.SFN+_ID.enriched.bed', quote=F, sep='\t', col.names=T, row.names=F)
+
+#chr start end JmC_ID  GeneName  Gene_KMeans_ID  SFN+_ID
 ### info
 # 118435 unique hg38 cCREs & 66106 unique mm10 cCREs
 # 234762 unique hg38 cCREs-protein-coding-gene pairs & 145109 unique mm10 cCREs-protein-coding-gene pairs (TSS +/-50kb)
 table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat$SFNID)
 table(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID)
 # hg38
-    J     N     S    SF   SFJ    SJ 
-22471 56125 70690 36784 16579 32113
+    J     N     S    S+    SF   SF+ 
+26179 52417 64871 37932 33532 19831 
 # mm10
-    J     N     S    SF   SFJ    SJ 
-10871 28941 29634 44298 19500 11865 
+    J     N     S    S+    SF   SF+ 
+13740 26072 26387 15112 39999 23799
+kkk = table(apply(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat,1,function(x) paste(x[11],x[12])))
+kkk1 = table(apply(bbbbbb,1, function(x) paste(x[11],x[12])))
+png('GeneKMID_SFN+ID.count.Human_Mouse.png')
+heatscatter(kkk,kkk1)
+heatscatter(as.numeric(kkk),as.numeric(kkk1))
+abline(0,1)
+dev.off()
 #################################################
 
 
@@ -1309,18 +1574,18 @@ SFNP_ID_order = SFN_ID_list
 Jmet_i_SFNP_count = c()
 Jmet_i_SFNP_enrich = c()
 for (Jmet_i in used_order){
-	print(Jmet_i)
-	Jmet_i_binary = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$JmetID==Jmet_i
-	SFNP_ID_order_count_i = c()
-	SFNP_ID_order_enrich_i = c()
-	for (SFNP_j in SFNP_ID_order){
-		obs_Jmet_i_SFNP_j = sum((Jmet_i_binary * (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID==SFNP_j))!=0)
-		exp_Jmet_i_SFNP_j = sum(Jmet_i_binary) / dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat)[1] * sum(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID==SFNP_j) 
-		SFNP_ID_order_count_i = c(SFNP_ID_order_count_i, obs_Jmet_i_SFNP_j)
-		SFNP_ID_order_enrich_i = c(SFNP_ID_order_enrich_i, (obs_Jmet_i_SFNP_j+100)/(exp_Jmet_i_SFNP_j+100))
-	}
-	Jmet_i_SFNP_count = rbind(Jmet_i_SFNP_count, SFNP_ID_order_count_i)
-	Jmet_i_SFNP_enrich = rbind(Jmet_i_SFNP_enrich, SFNP_ID_order_enrich_i)
+  print(Jmet_i)
+  Jmet_i_binary = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$JmetID==Jmet_i
+  SFNP_ID_order_count_i = c()
+  SFNP_ID_order_enrich_i = c()
+  for (SFNP_j in SFNP_ID_order){
+    obs_Jmet_i_SFNP_j = sum((Jmet_i_binary * (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID==SFNP_j))!=0)
+    exp_Jmet_i_SFNP_j = sum(Jmet_i_binary) / dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat)[1] * sum(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_SFN_mat$SFNID==SFNP_j) 
+    SFNP_ID_order_count_i = c(SFNP_ID_order_count_i, obs_Jmet_i_SFNP_j)
+    SFNP_ID_order_enrich_i = c(SFNP_ID_order_enrich_i, (obs_Jmet_i_SFNP_j+100)/(exp_Jmet_i_SFNP_j+100))
+  }
+  Jmet_i_SFNP_count = rbind(Jmet_i_SFNP_count, SFNP_ID_order_count_i)
+  Jmet_i_SFNP_enrich = rbind(Jmet_i_SFNP_enrich, SFNP_ID_order_enrich_i)
 }
 ###
 colnames(Jmet_i_SFNP_count) = SFNP_ID_order
@@ -1351,11 +1616,11 @@ hg38_SFN_loops = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_
 hg38_SFN_loops_TSS = hg38_SFN_loops[,1:3]
 k = 0
 for (gene_i in unique(hg38_SFN_loops$GeneName)){
-	k = k+1
-	if (k%%1000==0){print(k)}
-	used_n = sum(hg38_SFN_loops$GeneName==gene_i)
-	TSS_gene_i = hg38_gene_locus_TSS[hg38_gene_locus_TSS[,5]==gene_i,1:3]
-	hg38_SFN_loops_TSS[hg38_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
+  k = k+1
+  if (k%%1000==0){print(k)}
+  used_n = sum(hg38_SFN_loops$GeneName==gene_i)
+  TSS_gene_i = hg38_gene_locus_TSS[hg38_gene_locus_TSS[,5]==gene_i,1:3]
+  hg38_SFN_loops_TSS[hg38_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
 }
 ###
 hg38_SFN_loops = cbind(hg38_SFN_loops[,1:5], round(hg38_SFN_loops[12]*1000), hg38_SFN_loops[,13], rep('#DEDEDE', dim(hg38_SFN_loops)[1]), hg38_SFN_loops[,c(1:3,7)], rep('.', dim(hg38_SFN_loops)[1]), hg38_SFN_loops_TSS, hg38_SFN_loops$GeneName, rep('.', dim(hg38_SFN_loops)[1]) )
@@ -1371,9 +1636,9 @@ hg38_SFN_loops = cbind(hg38_SFN_loops[,1:5], round(hg38_SFN_loops[12]*1000), hg3
 #hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#DEDEDE'
 #hg38_SFN_loops[hg38_SFN_loops[,7]=='TSS',8] = '#000000'
 
-hg38_SFN_loops[hg38_SFN_loops[,7]=='SFJ',8] = '#FF0000'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='SF+',8] = '#FF0000'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='SF',8] = '#ED585E'
-hg38_SFN_loops[hg38_SFN_loops[,7]=='SJ',8] = '#FF5500'
+hg38_SFN_loops[hg38_SFN_loops[,7]=='S+',8] = '#FF5500'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='S',8] = '#4FE54A'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='J',8] = '#FFAB00'
 hg38_SFN_loops[hg38_SFN_loops[,7]=='N',8] = '#5868F2'
@@ -1395,29 +1660,29 @@ hg38_SFN_loops_new = hg38_SFN_loops
 k = 0
 for ( cCRE_i in unique_HID){
 if (k%%1000==0){print(k)}
-	d_cCRE_i = hg38_SFN_loops[hg38_SFN_loops$HID==cCRE_i,]
+  d_cCRE_i = hg38_SFN_loops[hg38_SFN_loops$HID==cCRE_i,]
 if (dim(d_cCRE_i)[1]==1){
-	k = k+1
-	hg38_SFN_loops_new[k,] = d_cCRE_i
+  k = k+1
+  hg38_SFN_loops_new[k,] = d_cCRE_i
 } else {
-	if (sum(d_cCRE_i[,7]=='TSS')>0){
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('TSS')),]
-	} else if (sum(d_cCRE_i[,7]=='SFJ')>0) {
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SFJ')),]
-	} else if (sum(d_cCRE_i[,7]=='SJ')>0) {
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SJ')),]
-	} else if (sum(d_cCRE_i[,7]=='J')>0) {
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('J')),]
-	}
-	###
-	if (dim(d_cCRE_i)[1]==1){
-		k = k+1
-		hg38_SFN_loops_new[k,] = d_cCRE_i
-	} else{
-		k_vec = (k+1):(k+dim(d_cCRE_i)[1])
-		hg38_SFN_loops_new[k_vec,] = d_cCRE_i
-		k = k_vec[length(k_vec)]
-	}
+  if (sum(d_cCRE_i[,7]=='TSS')>0){
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('TSS')),]
+  } else if (sum(d_cCRE_i[,7]=='SF+')>0) {
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SF+')),]
+  } else if (sum(d_cCRE_i[,7]=='S+')>0) {
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('S+')),]
+  } else if (sum(d_cCRE_i[,7]=='J')>0) {
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('J')),]
+  }
+  ###
+  if (dim(d_cCRE_i)[1]==1){
+    k = k+1
+    hg38_SFN_loops_new[k,] = d_cCRE_i
+  } else{
+    k_vec = (k+1):(k+dim(d_cCRE_i)[1])
+    hg38_SFN_loops_new[k_vec,] = d_cCRE_i
+    k = k_vec[length(k_vec)]
+  }
 }
 }
 hg38_SFN_loops_new1 = hg38_SFN_loops_new[1:k,]
@@ -1428,9 +1693,9 @@ cor_pass_P_mat = c()
 cor_thresh_vec = seq(0,1000,by=100)
 for (cor_thresh in cor_thresh_vec){
 #PP = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='TSS',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='TSS',6])
-PSAF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SFJ',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SFJ',6])
+PSAF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SF+',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SF+',6])
 PSA = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SF',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SF',6])
-PSF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SJ',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='SJ',6])
+PSF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='S+',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='S+',6])
 PS = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='S',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='S',6])
 PF = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='J',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='J',6])
 PN = sum(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='N',6]>cor_thresh) / length(hg38_SFN_loops_new1[hg38_SFN_loops_new1[,7]=='N',6])
@@ -1464,7 +1729,7 @@ colnames(hg38_SFN_loops_new2)[c(6,5)] = colnames(hg38_SFN_loops_new1)[c(6,5)]
 write.table(hg38_SFN_loops_new2, 'hg38.SFNJ.loop.OD.interact', quote=F, sep='\t', col.names=F, row.names=F)
 ### write interact file with header
 bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
-bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFNJ.loop.All.interact'
+bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFN+.loop.All.interact'
 system(bash1)
 system(bash2)
 bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
@@ -1472,7 +1737,7 @@ bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' \'{if ($5>=200 || $7=="T
 system(bash1)
 system(bash2)
 bash1 = 'cat loop.header.txt > hg38.SFN.loop.interact.tmp'
-bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\'  \'{if ($5>=0) print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | awk -F \'\t\' \'{if ($17=="GATA1") print $0}\' >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFNJ.loop.GATA1.interact'
+bash2 = 'cat hg38.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\'  \'{if ($5>=0) print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | awk -F \'\t\' \'{if ($17=="GATA1") print $0}\' >> hg38.SFN.loop.interact.tmp && mv hg38.SFN.loop.interact.tmp hg38.SFN+.loop.GATA1.interact'
 system(bash1)
 system(bash2)
 
@@ -1480,9 +1745,9 @@ cor_mat_hg38_SFN_loops_new1 = c()
 set.seed(2019)
 SFN_ID_list1 = SFN_ID_list
 for (SFN_ID in SFN_ID_list1){
-	cor_SFN_ID = hg38_SFN_loops[hg38_SFN_loops[,7]==SFN_ID,6]
-	#cor_SFN_ID = cor_SFN_ID[abs(cor_SFN_ID)>200]
-	cor_mat_hg38_SFN_loops_new1 = cbind(cor_mat_hg38_SFN_loops_new1, cor_SFN_ID[sample(length(cor_SFN_ID), 10000, replace=T)])
+  cor_SFN_ID = hg38_SFN_loops[hg38_SFN_loops[,7]==SFN_ID,6]
+  #cor_SFN_ID = cor_SFN_ID[abs(cor_SFN_ID)>200]
+  cor_mat_hg38_SFN_loops_new1 = cbind(cor_mat_hg38_SFN_loops_new1, cor_SFN_ID[sample(length(cor_SFN_ID), 10000, replace=T)])
 }
 colnames(cor_mat_hg38_SFN_loops_new1) = SFN_ID_list
 pdf('corabs_SFN_mat.box.cor02.cCREeach.pdf',width=8.5)
@@ -1499,24 +1764,24 @@ wilcox.test(cor_mat_hg38_SFN_loops_new1_plot[,1], cor_mat_hg38_SFN_loops_new1_pl
 wilcox.test(cor_mat_hg38_SFN_loops_new1_plot[,3], cor_mat_hg38_SFN_loops_new1_plot[,4], alternative='greater', paired=F)
 wilcox.test(cor_mat_hg38_SFN_loops_new1_plot[,5], cor_mat_hg38_SFN_loops_new1_plot[,6], alternative='greater', paired=F)
 
-	Wilcoxon rank sum test with continuity correction
+  Wilcoxon rank sum test with continuity correction
 
 data:  cor_mat_hg38_SFN_loops_new1_plot[, 1] and cor_mat_hg38_SFN_loops_new1_plot[, 2]
-W = 7417914, p-value = 0.0000001
+W = 7998060, p-value = 0.0000000000007
 alternative hypothesis: true location shift is greater than 0
 
 
-	Wilcoxon rank sum test with continuity correction
+  Wilcoxon rank sum test with continuity correction
 
 data:  cor_mat_hg38_SFN_loops_new1_plot[, 3] and cor_mat_hg38_SFN_loops_new1_plot[, 4]
-W = 7571948, p-value <0.0000000000000002
+W = 7821947, p-value = 0.0000000000000007
 alternative hypothesis: true location shift is greater than 0
 
 
-	Wilcoxon rank sum test with continuity correction
+  Wilcoxon rank sum test with continuity correction
 
 data:  cor_mat_hg38_SFN_loops_new1_plot[, 5] and cor_mat_hg38_SFN_loops_new1_plot[, 6]
-W = 7035546, p-value = 0.0000000000000003
+W = 7176522, p-value <0.0000000000000002
 alternative hypothesis: true location shift is greater than 0
 
 
@@ -1536,12 +1801,12 @@ hg38_SFN_loops_new1_bed2 = cbind(hg38_SFN_loops_new1_bed1[,2:4], hg38_SFN_loops_
 write.table(hg38_SFN_loops_new1_bed2, 'hg38.cCRE.SFNJ.colored.bed', quote=F, sep='\t', col.names=F, row.names=F)
 ###
 bash1 = 'cat bed.SFNJ.header.txt > hg38.cCRE.SFNJ.colored.bed.tmp'
-bash2 = 'cat hg38.cCRE.SFNJ.colored.bed | awk \'{print $0}\' >> hg38.cCRE.SFNJ.colored.bed.tmp && mv hg38.cCRE.SFNJ.colored.bed.tmp hg38.cCRE.SFN(+).colored.bed'
+bash2 = 'cat hg38.cCRE.SFNJ.colored.bed | awk \'{print $0}\' >> hg38.cCRE.SFNJ.colored.bed.tmp && mv hg38.cCRE.SFNJ.colored.bed.tmp hg38.cCRE.SFN+.colored.bed'
 system(bash1)
 system(bash2)
 table(apply(hg38_SFN_loops_new1_bed2,1,function(x) unlist(strsplit(x[4], ':'))[1]))
-    J     N     S    SF   SFJ    SJ 
-15042 27708 32039 15487  8560 19599
+    J     N     S    S+    SF   SF+ 
+16802 25948 29189 22449 13885 10162
 #################################################
 
 
@@ -1573,18 +1838,18 @@ mm10_SFN_loops = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_
 mm10_SFN_loops_TSS = mm10_SFN_loops[,1:3]
 k = 0
 for (gene_i in unique(mm10_SFN_loops$GeneName)){
-	k = k+1
-	if (k%%1000==0){print(k)}
-	used_n = sum(mm10_SFN_loops$GeneName==gene_i)
-	TSS_gene_i = mm10_gene_locus_TSS[toupper(mm10_gene_locus_TSS[,5])==gene_i,1:3]
-	mm10_SFN_loops_TSS[mm10_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
+  k = k+1
+  if (k%%1000==0){print(k)}
+  used_n = sum(mm10_SFN_loops$GeneName==gene_i)
+  TSS_gene_i = mm10_gene_locus_TSS[toupper(mm10_gene_locus_TSS[,5])==gene_i,1:3]
+  mm10_SFN_loops_TSS[mm10_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
 }
 ###
 mm10_SFN_loops = cbind(mm10_SFN_loops[,1:5], round(rep(1, dim(mm10_SFN_loops)[1])*1000), mm10_SFN_loops[,12], rep('#DEDEDE', dim(mm10_SFN_loops)[1]), mm10_SFN_loops[,c(1:3,7)], rep('.', dim(mm10_SFN_loops)[1]), mm10_SFN_loops_TSS, mm10_SFN_loops$GeneName, rep('.', dim(mm10_SFN_loops)[1]) )
 ### remove neg
-mm10_SFN_loops[mm10_SFN_loops[,7]=='SFJ',8] = '#FF0000'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='SF+',8] = '#FF0000'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='SF',8] = '#ED585E'
-mm10_SFN_loops[mm10_SFN_loops[,7]=='SJ',8] = '#FF5500'
+mm10_SFN_loops[mm10_SFN_loops[,7]=='S+',8] = '#FF5500'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='S',8] = '#4FE54A'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='J',8] = '#FFAB00'
 mm10_SFN_loops[mm10_SFN_loops[,7]=='N',8] = '#5868F2'
@@ -1605,29 +1870,29 @@ mm10_SFN_loops_new = mm10_SFN_loops
 k = 0
 for ( cCRE_i in unique_MID){
 if (k%%1000==0){print(k)}
-	d_cCRE_i = mm10_SFN_loops[mm10_SFN_loops$HID==cCRE_i,]
+  d_cCRE_i = mm10_SFN_loops[mm10_SFN_loops$HID==cCRE_i,]
 if (dim(d_cCRE_i)[1]==1){
-	k = k+1
-	mm10_SFN_loops_new[k,] = d_cCRE_i
+  k = k+1
+  mm10_SFN_loops_new[k,] = d_cCRE_i
 } else {
-	if (sum(d_cCRE_i[,7]=='TSS')>0){
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('TSS')),]
-	} else if (sum(d_cCRE_i[,7]=='SFJ')>0) {
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SFJ')),]
-	} else if (sum(d_cCRE_i[,7]=='SJ')>0) {
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SJ')),]
-	} else if (sum(d_cCRE_i[,7]=='J')>0) {
-		d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('J')),]
-	}
-	###
-	if (dim(d_cCRE_i)[1]==1){
-		k = k+1
-		mm10_SFN_loops_new[k,] = d_cCRE_i
-	} else{
-		k_vec = (k+1):(k+dim(d_cCRE_i)[1])
-		mm10_SFN_loops_new[k_vec,] = d_cCRE_i
-		k = k_vec[length(k_vec)]
-	}
+  if (sum(d_cCRE_i[,7]=='TSS')>0){
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('TSS')),]
+  } else if (sum(d_cCRE_i[,7]=='SF+')>0) {
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('SF+')),]
+  } else if (sum(d_cCRE_i[,7]=='S+')>0) {
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('S+')),]
+  } else if (sum(d_cCRE_i[,7]=='J')>0) {
+    d_cCRE_i = d_cCRE_i[is.element(d_cCRE_i[,7], c('J')),]
+  }
+  ###
+  if (dim(d_cCRE_i)[1]==1){
+    k = k+1
+    mm10_SFN_loops_new[k,] = d_cCRE_i
+  } else{
+    k_vec = (k+1):(k+dim(d_cCRE_i)[1])
+    mm10_SFN_loops_new[k_vec,] = d_cCRE_i
+    k = k_vec[length(k_vec)]
+  }
 }
 }
 mm10_SFN_loops_new1 = mm10_SFN_loops_new[1:k,]
@@ -1645,11 +1910,11 @@ mm10_SFN_loops_new2 = mm10_SFN_loops_new2[,c(1:18)]
 write.table(mm10_SFN_loops_new2, 'mm10.SFNJ.loop.OD.interact', quote=F, sep='\t', col.names=F, row.names=F)
 ### write interact file with header
 bash1 = 'cat loop.mm10.header.txt > mm10.SFN.loop.interact.tmp'
-bash2 = 'cat mm10.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFNJ.loop.All.interact'
+bash2 = 'cat mm10.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFN+.loop.All.interact'
 system(bash1)
 system(bash2)
 bash1 = 'cat loop.mm10.header.txt > mm10.SFN.loop.interact.tmp'
-bash2 = 'cat mm10.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u | awk -F \'\t\' \'{if ($17=="GATA1") print $0}\' >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFNJ.loop.GATA1.interact'
+bash2 = 'cat mm10.SFNJ.loop.OD.interact | awk -F \'\t\' -v OFS=\'\t\' \'{if ($5>=0 || $7=="TSS") print $0; else print $1,$2,$3,$4,0,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}\' | sort -u | awk -F \'\t\' \'{if ($17=="GATA1") print $0}\' >> mm10.SFN.loop.interact.tmp && mv mm10.SFN.loop.interact.tmp mm10.SFN+.loop.GATA1.interact'
 system(bash1)
 system(bash2)
 
@@ -1670,14 +1935,13 @@ mm10_SFN_loops_new1_bed2 = cbind(mm10_SFN_loops_new1_bed1[,2:4], mm10_SFN_loops_
 write.table(mm10_SFN_loops_new1_bed2, 'mm10.cCRE.SFNJ.colored.bed', quote=F, sep='\t', col.names=F, row.names=F)
 ###
 bash1 = 'cat bed.mm10.SFNJ.header.txt > mm10.cCRE.SFNJ.colored.bed.tmp'
-bash2 = 'cat mm10.cCRE.SFNJ.colored.bed | awk \'{print $0}\' >> mm10.cCRE.SFNJ.colored.bed.tmp && mv mm10.cCRE.SFNJ.colored.bed.tmp mm10.cCRE.SFN(+).colored.bed'
+bash2 = 'cat mm10.cCRE.SFNJ.colored.bed | awk \'{print $0}\' >> mm10.cCRE.SFNJ.colored.bed.tmp && mv mm10.cCRE.SFNJ.colored.bed.tmp mm10.cCRE.SFN+.colored.bed'
 system(bash1)
 system(bash2)
 table(apply(mm10_SFN_loops_new1_bed2,1,function(x) unlist(strsplit(x[4], ':'))[1]))
-    J     N     S    SF   SFJ    SJ 
- 6882 11976 13451 16355  9670  7772
+    J     N     S    S+    SF   SF+ 
+ 8123 10735 11837  9386 14377 11648
 #################################################
-
 
 
 #################################################
@@ -1766,11 +2030,11 @@ mm10_SFN_loops = cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_mm10_
 mm10_SFN_loops_TSS = mm10_SFN_loops[,1:3]
 k = 0
 for (gene_i in unique(mm10_SFN_loops$GeneName)){
-	k = k+1
-	if (k%%1000==0){print(k)}
-	used_n = sum(mm10_SFN_loops$GeneName==gene_i)
-	TSS_gene_i = mm10_gene_locus_TSS[mm10_gene_locus_TSS[,5]==gene_i,1:3]
-	mm10_SFN_loops_TSS[mm10_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
+  k = k+1
+  if (k%%1000==0){print(k)}
+  used_n = sum(mm10_SFN_loops$GeneName==gene_i)
+  TSS_gene_i = mm10_gene_locus_TSS[mm10_gene_locus_TSS[,5]==gene_i,1:3]
+  mm10_SFN_loops_TSS[mm10_SFN_loops$GeneName==gene_i,] = cbind(as.data.frame(rep(TSS_gene_i[1,1], used_n)), rep(TSS_gene_i[1,2], used_n), rep(TSS_gene_i[1,3], used_n))
 }
 ###
 mm10_SFN_loops = cbind(mm10_SFN_loops[,1:5], round(rep(1,dim(mm10_SFN_loops)[1])*1000), mm10_SFN_loops[,12], rep('#DEDEDE', dim(mm10_SFN_loops)[1]), mm10_SFN_loops[,c(1:3,7)], rep('.', dim(mm10_SFN_loops)[1]), mm10_SFN_loops_TSS, mm10_SFN_loops$GeneName, rep('.', dim(mm10_SFN_loops)[1]) )
@@ -1823,11 +2087,11 @@ K562_CRISPRi = read.table('Gasperini.Enh.Gene.pairs.hg19Tohg38.bed', header=F)
 ###
 hg38_SFN_loops_crispr_label = rep(-1, dim(cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat)[1])
 for (i in 1:dim(K562_CRISPRi)[1]){
-	if (i%%100==0) {print(i)}
+  if (i%%100==0) {print(i)}
 intersect_Enh_gene_rows = ((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,1]==K562_CRISPRi[i,1]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,6]==K562_CRISPRi[i,4]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,2]<=K562_CRISPRi[i,3]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,3]>=K562_CRISPRi[i,2]) )
 #intersect_Enh_gene_rows = ((cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,1]==K562_CRISPRi[i,1]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,2]<=K562_CRISPRi[i,3]) & (cCRE_gene_JmetID_FS01_geneName_MID_HID_S01_TSS_GeneKM_mat_hg38_RNAcor_SFN_mat[,3]>=K562_CRISPRi[i,2]) )
 if (sum(intersect_Enh_gene_rows)>0){
-	hg38_SFN_loops_crispr_label[intersect_Enh_gene_rows] = K562_CRISPRi[i,5]
+  hg38_SFN_loops_crispr_label[intersect_Enh_gene_rows] = K562_CRISPRi[i,5]
 }
 }
 
@@ -1898,22 +2162,22 @@ hg38_SFN_set_per_gene = apply(hg38_SFN_loops[hg38_SFN_loops[,1]!='chrXasdasd',c(
 hg38_SFN_CC_loops_Jmet_gene_new = c()
 k = 0
 for (Jmet_gene_i in unique(hg38_SFN_set_per_gene)){
-	k = k+1
-	if (k%%100==0){print(k)}
-	hg38_SFN_CC_loops_Jmet_gene_i = hg38_SFN_CC_loops_new[hg38_SFN_set_per_gene==Jmet_gene_i,]
-	if (hg38_SFN_CC_loops_Jmet_gene_i[1,5]!=0){
-		hg38_SFN_CC_loops_Jmet_gene_i_new = c()
-		for (i in 1:dim(hg38_SFN_CC_loops_Jmet_gene_i)[1]){
-			for (j in 1:dim(hg38_SFN_CC_loops_Jmet_gene_i)[1]){
-				if (i<j){
-					hg38_SFN_CC_loops_Jmet_gene_i_new_j = hg38_SFN_CC_loops_Jmet_gene_i[i,]
-					hg38_SFN_CC_loops_Jmet_gene_i_new_j[14:18] = hg38_SFN_CC_loops_Jmet_gene_i[j,c(9:13)]
-					hg38_SFN_CC_loops_Jmet_gene_i_new = rbind(hg38_SFN_CC_loops_Jmet_gene_i_new, hg38_SFN_CC_loops_Jmet_gene_i_new_j)
-				}
-			}
-		}
-		hg38_SFN_CC_loops_Jmet_gene_new = rbind(hg38_SFN_CC_loops_Jmet_gene_new, hg38_SFN_CC_loops_Jmet_gene_i_new)
-	}
+  k = k+1
+  if (k%%100==0){print(k)}
+  hg38_SFN_CC_loops_Jmet_gene_i = hg38_SFN_CC_loops_new[hg38_SFN_set_per_gene==Jmet_gene_i,]
+  if (hg38_SFN_CC_loops_Jmet_gene_i[1,5]!=0){
+    hg38_SFN_CC_loops_Jmet_gene_i_new = c()
+    for (i in 1:dim(hg38_SFN_CC_loops_Jmet_gene_i)[1]){
+      for (j in 1:dim(hg38_SFN_CC_loops_Jmet_gene_i)[1]){
+        if (i<j){
+          hg38_SFN_CC_loops_Jmet_gene_i_new_j = hg38_SFN_CC_loops_Jmet_gene_i[i,]
+          hg38_SFN_CC_loops_Jmet_gene_i_new_j[14:18] = hg38_SFN_CC_loops_Jmet_gene_i[j,c(9:13)]
+          hg38_SFN_CC_loops_Jmet_gene_i_new = rbind(hg38_SFN_CC_loops_Jmet_gene_i_new, hg38_SFN_CC_loops_Jmet_gene_i_new_j)
+        }
+      }
+    }
+    hg38_SFN_CC_loops_Jmet_gene_new = rbind(hg38_SFN_CC_loops_Jmet_gene_new, hg38_SFN_CC_loops_Jmet_gene_i_new)
+  }
 }
 
 ### change colors
@@ -2034,7 +2298,7 @@ length(table(apply(cCRE_M_Jmeta1,1, function(x) paste(x[4],x[6]))))
 ### check EP-pairs num
 EP_pair_num = rep(0, dim(hg38_gene_shared_exp)[1])
 for (i in 1:dim(hg38_gene_shared_exp)[1]){
-	if (i%%1000==0){print(i)}
+  if (i%%1000==0){print(i)}
 hg38_gene_shared_exp_i = hg38_gene_shared_exp[i,]
 included_rows_i = ((dh_with_JointClusterID[,1]==hg38_gene_shared_exp_i[1,1]) * (dh_with_JointClusterID[,2]>=hg38_gene_shared_exp_i[1,2]) * (dh_with_JointClusterID[,3]<=hg38_gene_shared_exp_i[1,3])) != 0
 EP_pair_num[i] = sum(included_rows_i)
@@ -2076,7 +2340,7 @@ colnames(Jmet_SF) = c('Jmet','SF_nCREn','F_nCREn','ratio')
 Jmet_SF_plot = c()
 used_order = c(1,11,5,8,2,6,9,10)
 for (Jmeti in used_order){
-	Jmet_SF_plot = rbind(Jmet_SF_plot, Jmet_SF[Jmet_SF[,1]==Jmeti,4])
+  Jmet_SF_plot = rbind(Jmet_SF_plot, Jmet_SF[Jmet_SF[,1]==Jmeti,4])
 }
 rownames(Jmet_SF_plot) = used_order
 colnames(Jmet_SF_plot) = NULL
@@ -2154,14 +2418,14 @@ gene_RNA_Jmet_cor_check_shared = gene_RNA_Jmet_cor[is.element(rownames(gene_RNA_
 gene_RNA_Jmet_cor_check_shared_unique = c()
 k = 0
 for (gene_i in rownames(meta_cluster_mat_check_shared)){
-	k =k+1
-	if (k%%10000==0){print(k)}
-	if (sum(rownames(gene_RNA_Jmet_cor_check_shared)==gene_i)>1){
-		gene_RNA_Jmet_cor_check_shared_unique = rbind(gene_RNA_Jmet_cor_check_shared_unique, colMeans(gene_RNA_Jmet_cor_check_shared[rownames(gene_RNA_Jmet_cor_check_shared)==gene_i,]))
-	} else{
-		gene_RNA_Jmet_cor_check_shared_unique = rbind(gene_RNA_Jmet_cor_check_shared_unique, gene_RNA_Jmet_cor_check_shared[rownames(gene_RNA_Jmet_cor_check_shared)==gene_i,])
+  k =k+1
+  if (k%%10000==0){print(k)}
+  if (sum(rownames(gene_RNA_Jmet_cor_check_shared)==gene_i)>1){
+    gene_RNA_Jmet_cor_check_shared_unique = rbind(gene_RNA_Jmet_cor_check_shared_unique, colMeans(gene_RNA_Jmet_cor_check_shared[rownames(gene_RNA_Jmet_cor_check_shared)==gene_i,]))
+  } else{
+    gene_RNA_Jmet_cor_check_shared_unique = rbind(gene_RNA_Jmet_cor_check_shared_unique, gene_RNA_Jmet_cor_check_shared[rownames(gene_RNA_Jmet_cor_check_shared)==gene_i,])
 
-	}
+  }
 }
 rownames(gene_RNA_Jmet_cor_check_shared_unique) = rownames(meta_cluster_mat_check_shared)
 colnames(gene_RNA_Jmet_cor_check_shared_unique) = colnames(gene_RNA_Jmet_cor_check_shared)

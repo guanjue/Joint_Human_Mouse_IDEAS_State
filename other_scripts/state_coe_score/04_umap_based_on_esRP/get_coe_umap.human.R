@@ -119,6 +119,20 @@ dev.off()
 }
 
 
+### get umap with Jmeta-clusterID
+cCRE_clusters0 = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.JclusterID.txt', header=T)
+cCRE_clusters = cCRE_clusters0[used_row,1:7]
+dir.create('coe_umap_PD_meta_clusterBinary')
+for (i in 1:length(unique(cCRE_clusters[,7]))){
+	metaC_i = unique(cCRE_clusters[,7])[i]
+png(paste('coe_umap_PD_meta_clusterBinary/', 'state_coe.human.umap.PD.JmC.', metaC_i,'.png', sep=''))
+plot(dss_umap$layout[,1], dss_umap$layout[,2], col='gray90', pch=16, cex = 0.5, main = paste0('Meta-Cluster:', metaC_i), xlab='UMAP Dim1', ylab='UMAP Dim2')
+points(dss_umap$layout[cCRE_clusters[,7]==metaC_i,1], dss_umap$layout[cCRE_clusters[,7]==metaC_i,2], col='black', pch=16, cex = 0.5)
+dev.off()
+}
+
+
+
 
 
 
