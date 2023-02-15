@@ -105,6 +105,12 @@ for (q in seq(0.1,0.99, by=0.01)){
 dev.off()
 }
 
+pdf('umap.esRP.colorbar', width=3)
+breaksList = seq(-quantile(as.numeric(as.matrix(dss)),0.99), quantile(as.numeric(as.matrix(dss)),0.99), by = 0.001)
+my_colorbar=colorRampPalette(c('blue', 'gray90','red'))(n = length(breaksList))
+col_breaks = c(seq(0, 2000,length=33))
+pheatmap(a, color=my_colorbar, breaks = breaksList, cluster_cols = FALSE,cluster_rows=F, clustering_method = 'average',annotation_names_row=TRUE,annotation_names_col=TRUE,show_rownames=TRUE,show_colnames=TRUE)
+dev.off()
 
 ### get umap with meta-clusterID
 cCRE_clusters = read.table('../coe_analysis/S3V2_IDEAS_hg38_ccre2.cCRE.M.notall0.rmallNEU.withid.coe_mat.PDmerged.clusterID.txt', header=T)[used_row,]

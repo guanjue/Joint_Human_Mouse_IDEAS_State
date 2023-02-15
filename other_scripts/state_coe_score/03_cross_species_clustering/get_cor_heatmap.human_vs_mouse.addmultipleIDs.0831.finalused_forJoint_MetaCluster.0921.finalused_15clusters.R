@@ -607,6 +607,18 @@ my_colorbar=colorRampPalette(c('white', 'red'))(n = length(breaksList))
 pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 #pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
+
+pdf('KMPCA.Joint.cluster.reproducible.Jmet.OD.pdf', height=6)
+dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot = dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig
+#dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot[dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig>0.3] = 0.3
+plot_color_lim = max(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot)
+#plot_color_lim = 100
+#breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
+breaksList = seq(min(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot), plot_color_lim, by = 0.001)
+my_colorbar=colorRampPalette(c('white', 'red'))(n = length(breaksList))
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+#pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+dev.off()
 #################################################
 
 
@@ -890,6 +902,18 @@ colnames(meta_cluster_mat_GeneGroup_Jmet) = paste('JmC_',used_order, sep='')
 rownames(meta_cluster_mat_GeneGroup_Jmet) = paste('GKM_', rownames(meta_cluster_mat_log2_km_mean), sep='')
 pheatmap((t(meta_cluster_mat_GeneGroup_Jmet)), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=T, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig), cex=1.5)
 dev.off()
+
+pdf('GeneGroup_by_JMeta.Joint.cluster.pdf', height=9 , width = 12)
+meta_cluster_mat_GeneGroup_Jmet = c()
+used_order = Jmet_order
+for (coli in used_order){
+  meta_cluster_mat_GeneGroup_Jmet = cbind(meta_cluster_mat_GeneGroup_Jmet, meta_cluster_mat_log2_km_mean[,colnames(meta_cluster_mat)==coli])
+}
+colnames(meta_cluster_mat_GeneGroup_Jmet) = paste('JmC_',used_order, sep='')
+rownames(meta_cluster_mat_GeneGroup_Jmet) = paste('GKM_', rownames(meta_cluster_mat_log2_km_mean), sep='')
+pheatmap((t(meta_cluster_mat_GeneGroup_Jmet)), cex=2, cluster_col=F, cluster_rows=F, show_rownames=T, show_colnames=T, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig), cex=1.5)
+dev.off()
+
 
 get_enriched_JmC_GKM_pairs = function(meta_cluster_mat_GeneGroup_Jmet){
   meta_cluster_mat_GeneGroup_Jmet_z = (meta_cluster_mat_GeneGroup_Jmet-mean(meta_cluster_mat_GeneGroup_Jmet))/sd(meta_cluster_mat_GeneGroup_Jmet)
