@@ -154,13 +154,13 @@ dhs_dms_ctmerge_shared_reorder = rbind(dhs_ctmerge_shared_reorder, dms_ctmerge_s
 cCRE_id = c(paste0(rep('H', dim(dhs_ctmerge_shared_reorder)[1])), paste0(rep('M', dim(dms_ctmerge_shared_reorder)[1])))
 coordinates = rbind(dh[,c(1:6)], dm[,c(1:6)])
 ### Human & mouse cCRE PCA
-dhs_ctmerge_shared_reorder_pca = prcomp(dhs_dms_ctmerge_shared_reorder, center = F, scale. = F)
-dhs_ctmerge_shared_reorder_pca_summary = summary(dhs_ctmerge_shared_reorder_pca)
+dhs_dms_ctmerge_shared_reorder_pca = prcomp(dhs_dms_ctmerge_shared_reorder, center = F, scale. = F)
+dhs_ctmerge_shared_reorder_pca_summary = summary(dhs_dms_ctmerge_shared_reorder_pca)
 print(dhs_ctmerge_shared_reorder_pca_summary$importance)
 pca_used_num = sum(dhs_ctmerge_shared_reorder_pca_summary$importance[3,]<0.99)+1
 set.seed(2019)
-used_id = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 10000)
-dhs_ctmerge_shared_reorder_pca_x_plot = dhs_ctmerge_shared_reorder_pca$x[used_id,]
+used_id = sample(dim(dhs_dms_ctmerge_shared_reorder_pca$x)[1], 10000)
+dhs_ctmerge_shared_reorder_pca_x_plot = dhs_dms_ctmerge_shared_reorder_pca$x[used_id,]
 cCRE_id_plot = cCRE_id[used_id]
 png('PCA.plot.raw.png')
 plot(dhs_ctmerge_shared_reorder_pca_x_plot[,1], dhs_ctmerge_shared_reorder_pca_x_plot[,2])
@@ -190,7 +190,7 @@ dev.off()
 set.seed(2019)
 KMPCA_meansig_mat_1 = c()
 start_km_num = 100
-km_dhs_ctmerge_shared1 = kmeans(dhs_ctmerge_shared_reorder_pca$x[,1:pca_used_num], centers=start_km_num)
+km_dhs_ctmerge_shared1 = kmeans(dhs_dms_ctmerge_shared_reorder_pca$x[,1:pca_used_num], centers=start_km_num)
 ### check KM cluster cCRE Human/Mouse ratio
 for (i in 1:start_km_num){
   dhs_dms_ctmerge_shared_reorder_ji = dhs_dms_ctmerge_shared_reorder[km_dhs_ctmerge_shared1$cluster==i,]
@@ -211,8 +211,8 @@ set.seed(2019)
 cCRE_esRP_KM_determineK_KM_ratio = c()
 for (ini_k in seq(10,200,by=10)){
   print(ini_k)
-  used_id_j = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 50000)
-  km_dhs_ctmerge_shared_check = kmeans(dhs_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=ini_k)
+  used_id_j = sample(dim(dhs_dms_ctmerge_shared_reorder_pca$x)[1], 50000)
+  km_dhs_ctmerge_shared_check = kmeans(dhs_dms_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=ini_k)
   cCRE_esRP_KM_determineK_KM_ratio = c(cCRE_esRP_KM_determineK_KM_ratio, km_dhs_ctmerge_shared_check$tot.withinss/km_dhs_ctmerge_shared_check$betweenss)
 }
 pdf('cCRE_esRP_KM.determineK.pdf')
@@ -231,8 +231,8 @@ check_reproducible = 100
 start_km_num = 100
 for (j in 1:check_reproducible){
 print(j)
-used_id_j = sample(dim(dhs_ctmerge_shared_reorder_pca$x)[1], 50000)
-km_dhs_ctmerge_shared1 = kmeans(dhs_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=start_km_num)
+used_id_j = sample(dim(dhs_dms_ctmerge_shared_reorder_pca$x)[1], 50000)
+km_dhs_ctmerge_shared1 = kmeans(dhs_dms_ctmerge_shared_reorder_pca$x[used_id_j,1:pca_used_num], centers=start_km_num)
 ### check KM cluster cCRE Human/Mouse ratio
 for (i in 1:start_km_num){
   if (sum(km_dhs_ctmerge_shared1$cluster==i)>100){
@@ -251,7 +251,7 @@ KMPCA_iteration = c(KMPCA_iteration, rep(j, start_km_num))
 #################################################
 ### identify reproducible state
 set.seed(2019)
-KMPCA_meansig_mat_pca_x = KMPCA_meansig_mat %*% dhs_ctmerge_shared_reorder_pca$rotation
+KMPCA_meansig_mat_pca_x = KMPCA_meansig_mat %*% dhs_dms_ctmerge_shared_reorder_pca$rotation
 KMPCA_meansig_mat_pca_joint_KM = kmeans(KMPCA_meansig_mat_pca_x[,1:pca_used_num], centers=start_km_num)
 
 KMPCA_iteration_KM_k = c()
@@ -390,7 +390,7 @@ colnames(QDA_train_data)[1] = 'Y'
 QDA_cluster_train_data_prior = cCRE_count_KMPCA_iteration_KM_k_reproducible / sum(cCRE_count_KMPCA_iteration_KM_k_reproducible)
 
 ### predict QDA id for each cCRE
-#all_cCREs_prediction_Y = predict(QDA_model, newdata = as.data.frame(dhs_ctmerge_shared_reorder_pca$x))$class
+#all_cCREs_prediction_Y = predict(QDA_model, newdata = as.data.frame(dhs_dms_ctmerge_shared_reorder_pca$x))$class
 #################################################
 ### correlation based clustering
 set.seed(2019)
@@ -481,7 +481,7 @@ hclust_cCRE_DTC_modified = hclust_cCRE_DTC
 #hclust_cCRE_DTC_modified[hclust_cCRE_DTC==7] = 1
 #hclust_cCRE_DTC_modified[hclust_cCRE_DTC==12] = 5
 set.seed(2019)
-dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation
+dhs_dms_ctmerge_shared_reorder_meansig_pca = dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation
 hclust_cCRE_DTC_modified = kmeans(dhs_dms_ctmerge_shared_reorder_meansig_pca[,1:pca_used_num], centers=11)$cluster
 '''
 ### Get reproducible Jmeta by hclust with cutreeDynamic with noise mat
@@ -535,7 +535,7 @@ colnames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_means
 rownames(KM_by_KM_SameClu_count) = rownames(dhs_dms_ctmerge_shared_reorder_meansig)
 ### plot count in same clusters 
 pdf('KM_by_KM_SameClu_count.reproducible.pdf', height=10, width=10)
-pheatmap(KM_by_KM_SameClu_count, cex = 1.5, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(KM_by_KM_SameClu_count), clustering_distance_cols=dist(KM_by_KM_SameClu_count))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pheatmap(KM_by_KM_SameClu_count, cex = 1.5, cluster_col=T, cluster_rows=T, clustering_distance_rows=dist(KM_by_KM_SameClu_count), clustering_distance_cols=dist(KM_by_KM_SameClu_count))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 ### Use cutreeDynamic to cluster KMs
 hclust_bySameClu_count = hclust(dist(KM_by_KM_SameClu_count), method='complete')
@@ -570,7 +570,7 @@ pdf('KMPCA.Joint.cluster.reproducible.pdf', height=12)
 plot_color_lim = 0.4
 breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
 my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], color=my_colorbar, breaks = breaksList, cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig[order(hclust_cCRE_DTC_modified),], color=my_colorbar, breaks = breaksList, cex = 1.5, cluster_col=T, cluster_rows=F, clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), clustering_distance_rows=dist(1 - cosine(t(dhs_dms_ctmerge_shared_reorder_meansig))) )#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible_H.pdf', height=10)
@@ -604,8 +604,8 @@ plot_color_lim = 0.25
 #breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
 breaksList = seq(min(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot), plot_color_lim, by = 0.001)
 my_colorbar=colorRampPalette(c('white', 'red'))(n = length(breaksList))
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
-#pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
+#pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 
 pdf('KMPCA.Joint.cluster.reproducible.Jmet.OD.pdf', height=6)
@@ -616,8 +616,8 @@ plot_color_lim = max(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot)
 #breaksList = seq(-plot_color_lim, plot_color_lim, by = 0.001)
 breaksList = seq(min(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot), plot_color_lim, by = 0.001)
 my_colorbar=colorRampPalette(c('white', 'red'))(n = length(breaksList))
-pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
-#pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, color=my_colorbar, breaks = breaksList, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(dhs_dms_ctmerge_shared_reorder_meansig)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
+#pheatmap(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig_plot, cluster_col=T, cluster_rows=T, clustering_distance_rows = dist((dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig)), clustering_distance_cols = dist(t(KMPCA_meansig_mat_meansig_mat_reproducible)), cex=1.5)#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 #################################################
 
@@ -663,7 +663,7 @@ JMeta_count_HM[,2] = JMeta_count_HM[,2]/mean(JMeta_count_HM[,2])*mean(JMeta_coun
 rownames(JMeta_count_HM) = JMeta_count_H[,1]
 colnames(JMeta_count_HM) = c('Human','Mouse')
 pdf('KMPCA.Joint.cluster.reproducible.Jmet.cCRE_count.pdf', height=5,width=3)
-pheatmap(log10(JMeta_count_HM), cluster_col=F, cluster_rows=T, cex=1.5, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_ctmerge_shared_reorder_pca$rotation[,]) )
+pheatmap(log10(JMeta_count_HM), cluster_col=F, cluster_rows=T, cex=1.5, clustering_distance_rows = dist(dhs_dms_ctmerge_shared_reorder_meansig_Jmet_meansig))#, clustering_distance_rows=dist(dhs_dms_ctmerge_shared_reorder_meansig %*% dhs_dms_ctmerge_shared_reorder_pca$rotation[,]) )
 dev.off()
 
 cbind(94092:94102, dm_with_JointClusterID_mat[94092:94102,7], as.numeric(all_cCREs_prediction_Y[200342+(94092:94102)]), dms_ctmerge_shared_reorder[94092:94102,])
