@@ -37,36 +37,43 @@ mm10_state_set=${10}
 # time bash get_hg38_mm10.state_similarity.sh GATA1 Gata1 50000 50000 50000 50000 hg38.gene.bed mm10.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.full.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.full.bed
 # time bash get_hg38_mm10.state_similarity.sh GATA1 Gata1 26561 49438 58670 42729 hg38.gene.bed mm10.gene.bed S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.full.bed S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.full.bed
 
-#hg38_gene='GATA1'
-#mm10_gene='Gata1'
-#hg38_gene_set='hg38.gene.bed'
-#mm10_gene_set='mm10.gene.bed'
-#hg38_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'
-#mm10_state_set='S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed'
-#hg38_gene_exp_win=50000
-#mm10_gene_exp_win=50000
 
-#hg38_gene='HBA1'
-#mm10_gene='Hba-a1'
-#hg38_gene_set='hg38.gene.bed'
-#mm10_gene_set='mm10.gene.bed'
-#hg38_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'
-#mm10_state_set='S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed'
-#hg38_gene_exp_win=100000
-#mm10_gene_exp_win=100000
-
-hg38_gene='IFNG'
-mm10_gene='Ifng'
+hg38_gene='GATA1'
+mm10_gene='Gata1'
 hg38_gene_set='hg38.gene.bed'
 mm10_gene_set='mm10.gene.bed'
 hg38_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'
 mm10_state_set='S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed'
+para_file='06a_S3V2_IDEAS_hg38_r3_withHg38Mm10prior.para.modified.para'
 hg38_gene_exp_win=50000
 mm10_gene_exp_win=50000
 hg38_gene_exp_win_u=50000
 hg38_gene_exp_win_d=50000
 mm10_gene_exp_win_u=50000
 mm10_gene_exp_win_d=50000
+feature_num=8
+
+
+hg38_gene='HBA1'
+mm10_gene='Hba-a1'
+hg38_gene_set='hg38.gene.bed'
+mm10_gene_set='mm10.gene.bed'
+hg38_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'
+mm10_state_set='S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed'
+
+# both hg38
+#mm10_gene='HBA1'
+#mm10_gene_set='hg38.gene.bed'
+#mm10_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'
+
+para_file='06a_S3V2_IDEAS_hg38_r3_withHg38Mm10prior.para.modified.para'
+hg38_gene_exp_win=100000
+mm10_gene_exp_win=100000
+hg38_gene_exp_win_u=100000
+hg38_gene_exp_win_d=100000
+mm10_gene_exp_win_u=100000
+mm10_gene_exp_win_d=100000
+feature_num=8
 
 ###
 echo $hg38_gene
@@ -82,7 +89,7 @@ bedtools intersect -a $mm10_state_set -b 'mm10.gene.'$mm10_gene'.bed' -wa -u > '
 
 ### get state similarity matrix
 cat 'hg38.gene.'$hg38_gene'.bed' 'mm10.gene.'$mm10_gene'.bed'
-Rscript $script_dir/get_hg38_mm10.cor.heatmap.R 'hg38.gene.'$hg38_gene'.matched_ct.state.bed' 'mm10.gene.'$mm10_gene'.matched_ct.state.bed' $hg38_gene'.'$mm10_gene'.cor.heatmap.png' 06a_S3V2_IDEAS_hg38_r3_withHg38Mm10prior.para.modified.para 8 
+Rscript $script_dir/get_hg38_mm10.cor.heatmap.R 'hg38.gene.'$hg38_gene'.matched_ct.state.bed' 'mm10.gene.'$mm10_gene'.matched_ct.state.bed' $hg38_gene'.'$mm10_gene'.cor.heatmap.png' $para_file $feature_num 
 #Rscript $script_dir/get_hg38_mm10.cor.heatmap.coe.R 'hg38.gene.'$hg38_gene'.matched_ct.state.bed' 'mm10.gene.'$mm10_gene'.matched_ct.state.bed' $hg38_gene'.'$mm10_gene'.cor.coe.heatmap.png' 06a_S3V2_IDEAS_hg38_r3_withHg38Mm10prior.para.modified.para 8 statep_rna_coe_heatmap.HM.all.ccre.withcorfilter.AVE.txt
 
 
