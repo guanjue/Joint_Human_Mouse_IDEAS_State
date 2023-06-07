@@ -25,6 +25,7 @@ time Rscript ~/scratch/joint_human_mouse/S3V2_IDEAS_ESMP/bin/get_joint_mouse_hum
 
 
 
+
 ### Human hg38 R2
 ###### step4: rescan hg38 with prior joint states (hg38 r2)
 cd /storage/home/gzx103/scratch/joint_human_mouse/hg38/S3V2_IDEAS_outputs_hg38
