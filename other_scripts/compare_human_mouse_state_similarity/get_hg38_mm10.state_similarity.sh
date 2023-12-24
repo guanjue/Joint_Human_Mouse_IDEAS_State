@@ -20,7 +20,7 @@ cd $working_dir
 
 #chrX	7919401	8020800	-	Gata1
 #chrX	48760001	48836000	+	GATA1
-
+#chr6	124838201	124939600	-	Cd4
 
 
 hg38_gene=$1
@@ -40,6 +40,21 @@ mm10_state_set=${10}
 
 hg38_gene='GATA1'
 mm10_gene='Gata1'
+hg38_gene_set='hg38.gene.bed'
+mm10_gene_set='mm10.gene.bed'
+hg38_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'
+mm10_state_set='S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed'
+para_file='06a_S3V2_IDEAS_hg38_r3_withHg38Mm10prior.para.modified.para'
+hg38_gene_exp_win=50000
+mm10_gene_exp_win=50000
+hg38_gene_exp_win_u=50000
+hg38_gene_exp_win_d=50000
+mm10_gene_exp_win_u=50000
+mm10_gene_exp_win_d=50000
+feature_num=8
+
+hg38_gene='GATA1'
+mm10_gene='Cd4'
 hg38_gene_set='hg38.gene.bed'
 mm10_gene_set='mm10.gene.bed'
 hg38_state_set='S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed'

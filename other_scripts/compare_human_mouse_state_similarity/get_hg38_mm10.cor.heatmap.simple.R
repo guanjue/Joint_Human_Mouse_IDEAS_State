@@ -66,44 +66,4 @@ d12_cor_mat_adj = t(apply(d12_cor_mat,1,function(x) x*1))
 d12_cor_mat_adj = apply(d12_cor_mat_adj,2,function(x) x*1)
 
 # write out cor matrix
-write.table(d12_cor_mat_adj, paste(output_file, '.cor.mat.txt', sep=''), row.names = F, col.names = F, quote = F, sep = '\t')
-
-library(pheatmap)
-breaksList = seq(-1, 1, by = 0.001)
-my_colorbar=colorRampPalette(c('blue', 'white', 'red'))(n = length(breaksList))
-png(output_file, height=800, width=800)
-colnames(d12_cor_mat_adj) = NULL
-rownames(d12_cor_mat_adj) = NULL
-pheatmap(d12_cor_mat_adj, cluster_rows=F, cluster_cols=F, color=my_colorbar, breaks = breaksList)
-dev.off()
-
-#print(paste('Entropy:', Entropy(d12_cor_mat_adj)))
-
-get_cor_score = function(x){
-x = as.numeric(x)
-#x[x<0] = 0
-#xp = -log10(pnorm(max(x), mean = mean(x), sd = sd(x), lower.tail = F))
-#xp = -ppois(max(x), mean(x[x>0]), lower.tail = F, log.p = T)
-
-#x1 = x[xp<0.05]
-#x2 = x[xp>=0.05]
-#x1 = x[x>quantile(x, 0.99)]
-#x2 = x[x<=quantile(x, 0.99)]
-#p = t.test(max(x),x, alternative='greater')$p.value
-return(mean(x[x>quantile(x, 0.9)]))
-}
-
-png(paste(output_file, '.bar.1.png', sep=''), height=100, width=800)
-par(mar = c(0, 0, 0, 0))
-s1 = apply(d12_cor_mat_adj,2,function(x) get_cor_score(x))
-s1logp = -log10(pnorm(s1, mean(s1), sd(s1), lower.tail = F))
-barplot(rbind(s1logp), axes = F)
-dev.off()
-
-png(paste(output_file, '.bar.2.png', sep=''), height=100, width=800)
-par(mar = c(0, 0, 0, 0))
-s1 = apply(d12_cor_mat_adj,1,function(x) get_cor_score(x))
-s1logp = -log10(pnorm(s1, mean(s1), sd(s1), lower.tail = F))
-barplot(rbind(s1logp), axes = F)
-dev.off()
-
+write.table(round(d12_cor_mat_adj,3), paste(output_file, '.cor.mat.txt', sep=''), row.names = F, col.names = F, quote = F, sep = '\t')

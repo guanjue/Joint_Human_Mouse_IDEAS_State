@@ -60,6 +60,7 @@ rownames(d_mk_cor_mat) = apply(bed_mm10, 1, function(x) paste0('M_', x[1], '_', 
 # get positive correlation matrix
 d_mk_cor_mat_pos = d_mk_cor_mat
 d_mk_cor_mat_pos[d_mk_cor_mat_pos<0] = 0
+# save positive correlation matrix
 
 # decide the number of components based on the BIC
 set.seed(2019)
