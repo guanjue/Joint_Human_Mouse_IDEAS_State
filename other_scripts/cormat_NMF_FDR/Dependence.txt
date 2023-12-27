@@ -1,0 +1,3 @@
+bedtools
+r-base
+r-pheatmap

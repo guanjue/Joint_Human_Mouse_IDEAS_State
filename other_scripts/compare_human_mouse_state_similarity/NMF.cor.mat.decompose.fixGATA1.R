@@ -206,6 +206,44 @@ nmf_result_0 <- nmf(d_mk_cor_mat_pos, k = n_comp)
 nmf_result_0_W <- nmf_result_0$W
 nmf_result_0_H <- nmf_result_0$H
 
+##############################################################################################################
+
+# plot cross factor correlation matrix
+# get top quantile of NMFs
+nmf_result_0_W_binary_top_quantile = apply(nmf_result_0_W, 2, function(x) x > quantile(x, 0.9))*1
+nmf_result_0_H_binary_top_quantile = apply(t(nmf_result_0_H), 2, function(x) x > quantile(x, 0.9))*1
+
+# get mean correlation between different NMF factors
+cross_factor_cor_mat = matrix(0, nrow = dim(nmf_result_0_W)[2], ncol = dim(nmf_result_0_W)[2])
+#
+for (hg38_factor_j in 1:dim(nmf_result_0_H)[1]){
+    for (mm10_factor_i in 1:dim(nmf_result_0_W)[2]){
+        # get FDR_hg38_j and FDR_mm10_i
+        FDR_hg38_j = nmf_result_0_H_binary_top_quantile[,hg38_factor_j]
+        FDR_mm10_i = nmf_result_0_W_binary_top_quantile[,mm10_factor_i]
+        # get positive correlation matrix
+        d_mk_cor_mat_pos_cols = d_mk_cor_mat_pos[,FDR_hg38_j!=0]
+        d_mk_cor_mat_pos_cols_rows = d_mk_cor_mat_pos_cols[FDR_mm10_i!=0,]
+        # get mean correlation
+        cross_factor_cor_mat[mm10_factor_i,hg38_factor_j] = mean(d_mk_cor_mat_pos_cols_rows)
+    }
+}
+
+# plot cross_factor_cor_mat
+cross_factor_cor_mat[is.na(cross_factor_cor_mat)] = 0
+colnames(cross_factor_cor_mat) = paste0(hg38_gene, '_', 1:dim(nmf_result_0_W)[2])
+rownames(cross_factor_cor_mat) = paste0(mm10_gene, '_', 1:dim(nmf_result_0_W)[2])
+# my colorbar white to red
+my_colorbar = colorRampPalette(c('white','red'))(n = 100)
+pdf(paste0(hg38_gene, '.', mm10_gene, '.cross_factor_cor_mat.pdf'), width = 10, height = 10)
+pheatmap(cross_factor_cor_mat, cluster_rows=F, cluster_cols=F, color = my_colorbar, legend=T, show_rownames=T, show_colnames=T, cex=1.5)
+dev.off()
+
+# write cross_factor_cor_mat
+write.table(cross_factor_cor_mat, paste0(hg38_gene, '.', mm10_gene, '.cross_factor_cor_mat.txt'), sep='\t', quote=F, row.names=T, col.names=T)
+
+##############################################################################################################
+
 # nmf fix H
 set.seed(2019)
 nmf_result <- nmf_fix_H(d_mk_cor_mat_bg_pos, H = nmf_result_0_H)

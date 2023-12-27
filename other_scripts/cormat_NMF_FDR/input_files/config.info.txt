@@ -1,0 +1,22 @@
+script_dir	/Users/guanjuexiang/Documents/projects/Joint_Human_Mouse_IDEAS_State/other_scripts/cormat_NMF_FDR/scripts/
+working_dir	/Users/guanjuexiang/Documents/projects/analysis/test_cormat_NMF_FDR_pipeline/
+#
+hg38_gene	GATA1
+mm10_gene	Gata1
+hg38_gene_set	/Users/guanjuexiang/Documents/projects/Joint_Human_Mouse_IDEAS_State/other_scripts/cormat_NMF_FDR/input_files/hg38.gene.bed
+mm10_gene_set	/Users/guanjuexiang/Documents/projects/Joint_Human_Mouse_IDEAS_State/other_scripts/cormat_NMF_FDR/input_files/mm10.gene.bed
+hg38_gene_exp_win_u	50000
+hg38_gene_exp_win_d	50000
+mm10_gene_exp_win_u	50000
+mm10_gene_exp_win_d	50000
+#
+hg38_state_set	/Users/guanjuexiang/Documents/projects/analysis/0813_human_mouse_state_compare_heatmap/S3V2_IDEAS_hg38_r3_withHg38Mm10prior.state.matched_ct.bed
+mm10_state_set	/Users/guanjuexiang/Documents/projects/analysis/0813_human_mouse_state_compare_heatmap/S3V2_IDEAS_mm10_r3_withHg38Mm10prior.state.matched_ct.bed
+EpigeneticState_meansignal_mat_file	/Users/guanjuexiang/Documents/projects/Joint_Human_Mouse_IDEAS_State/other_scripts/cormat_NMF_FDR/input_files/IDEAS.EpigeneticState.mean_signal_mat.txt
+#
+random_background_gene_num	100
+fdr_threshold	0.1
+NMF_component_num	6
+
+
+
